@@ -117,6 +117,10 @@ def is_active(feature_id: str) -> bool:
     """
     if feature_id not in FEATURES:
         return True
+    # Mavis M0/M1 reuses only the pet core. Optional upstream agents, network
+    # services and shell launchers must not bypass the new assistant gateway.
+    if os.environ.get("DAFEIYU_MAVIS") == "1":
+        return False
     if _snapshot is None:
         return True
     from .features import resolve_dependencies

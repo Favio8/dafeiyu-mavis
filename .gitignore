@@ -1,5 +1,9 @@
 # Python
 __pycache__/
+/.venv*/
+/docs/product/
+/.coverage*
+/htmlcov/
 *.py[cod]
 .pytest_cache/
 .DS_Store

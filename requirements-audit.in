@@ -1,0 +1,5 @@
+# Audit environment ONLY. This package's Agent is never imported by Mavis.
+-r requirements-mavis.in
+windows-use==0.8.1
+# 0.8.1 imports `from mistralai import Mistral`; the resolved 3.7.0 has no such export.
+mistralai==1.9.11

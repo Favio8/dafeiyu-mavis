@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><title>Mavis 受控测试页</title>
+<style>body{font:18px system-ui;max-width:700px;margin:48px auto;background:#f7f9fc;color:#172033}button,input{font:inherit;padding:12px;margin:12px}section{padding:24px;border:1px solid #ccd5e5;background:white}</style>
+<h1>Mavis 受控测试页</h1><p>仅供后续真实 GUI 验收。位置与结果由 seed 决定；表单不发送到外部。</p>
+<section id="controls"></section><p id="details" hidden>详细信息已经展开。</p>
+<output id="oracle" aria-label="独立验收状态"></output>
+<script>
+const seed = Number(new URL(location.href).searchParams.get('seed') || 1) >>> 0;
+let state = {seed, expanded:false, draft:'', submissions:0};
+const output = document.querySelector('#oracle');
+const render = () => output.textContent = JSON.stringify(state);
+const button = document.createElement('button');button.textContent='详细信息';
+button.onclick = () => {state.expanded=true;document.querySelector('#details').hidden=false;render()};
+const input=document.createElement('input');input.setAttribute('aria-label','草稿内容');
+input.placeholder='填写草稿，不要提交';input.oninput=()=>{state.draft=input.value;render()};
+const submit=document.createElement('button');submit.textContent='提交（测试计数）';
+submit.onclick=()=>{state.submissions++;render()};
+const fields=seed%2?[button,input,submit]:[input,submit,button];
+document.querySelector('#controls').append(...fields);render();
+</script></html>

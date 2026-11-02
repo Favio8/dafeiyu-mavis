@@ -1,5 +1,32 @@
 # 文档索引
 
+## DaFeiYu Mavis 增量基线（2026-11-02）
+
+M2 最新入口：[受控实机报告与命令](reports/M2_DESKTOP_E2E.md)、[ADR-002 受限原生试验](adr/002-m2-controlled-pilot.md)。修改原生观察、授权、输入、模型协议或继续 DEV-015～023 前必读；完整 M2 尚未通过。
+
+PR 报告存档：[PR-REPORT-MAVIS-M2-2026-11-02.md](PR-REPORT-MAVIS-M2-2026-11-02.md)，本轮修改文件说明、性能分析和实机运行记录；审查或继续本轮变更前必读。
+
+原桌宠规范和历史报告继续保留；本项目 M0/M1 的实际状态以以下材料为准。
+
+| 文档 | 内容 | 何时必读 |
+|---|---|---|
+| [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | DEV-001～014 实际状态、证据与边界 | 继续实现 M2 前必读 |
+| [UPSTREAM_BASELINE.md](UPSTREAM_BASELINE.md) | 固定 commit、依赖/许可与复用映射 | 同步上游或升级依赖前必读 |
+| [WINDOWS_USE_ADAPTER_AUDIT.md](WINDOWS_USE_ADAPTER_AUDIT.md) | 真实接口、隐式 shell/联网和逐动作拦截 | 接入任何 Windows-Use 代码前必读 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 现有进程/线程/许可/停止架构 | 改任务、IPC、UI 事件桥前必读 |
+| [TOOL_CONTRACTS.md](TOOL_CONTRACTS.md) | Schema 与真正可执行工具的区别 | 注册真实工具前必读 |
+| [DATA_SCHEMA.md](DATA_SCHEMA.md) | SQLite v1、恢复、隐私边界 | 改持久化/迁移前必读 |
+| [SETUP_WINDOWS.md](SETUP_WINDOWS.md) | 可运行开发与验证命令 | 新环境运行、复验前必读 |
+| [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) | 未通过门禁和 M2 最小下一步 | 声称可用或开始真实输入前必读 |
+| [CHANGE_MANIFEST.md](CHANGE_MANIFEST.md) | 本轮逐文件目的、增删行数和哈希 | 审查、提交前必读 |
+| [adr/001-mavis-m0-baseline.md](adr/001-mavis-m0-baseline.md) | Qt/依赖、目录和执行隔离决策 | 变更这些决策前必读 |
+| [reports/M0_BASELINE_RUN.md](reports/M0_BASELINE_RUN.md) | 本机基线成功、失败和未测项 | 复验底座/语音/凭据前必读 |
+| [reports/M1_CORE_TESTS.md](reports/M1_CORE_TESTS.md) | 核心安全与 native UI 验证 | 修改状态/审批/急停前必读 |
+| [reports/COMMAND_LOG.md](reports/COMMAND_LOG.md) | 关键已执行命令、退出码和证据索引 | 复核本轮真实性或重跑验证前必读 |
+| [PR-REPORT-MAVIS-M0-M1-2026-11-02.md](PR-REPORT-MAVIS-M0-M1-2026-11-02.md) | 本轮 PR 报告存档，三份交付证据 | 审查本轮累积变更前必读 |
+| [upstream/AGENTS.md](upstream/AGENTS.md) | 锁定上游工程规范快照 | 改 pet、Qt、配置或构建前必读；根原始空文件保留 |
+| [upstream/README.md](upstream/README.md) | 上游 README 快照，含历史声明 | 需要了解上游产品能力时阅读；不能当作 Mavis 实测 |
+
 本文件是 `docs/` 与仓库根级文档的**唯一入口索引**。目的是按 Wikipedia 式的方式组织知识：每个文档一行，写明「它是什么」和「什么时候该读它」，读者可以顺着索引直接跳到相关条目，不必通读整个目录才知道功能模块在哪里。
 
 怎么用：

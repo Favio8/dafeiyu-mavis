@@ -5284,8 +5284,10 @@ def main(argv: list[str] | None = None, enable_chat: bool = True) -> int:
         feature_activation_mod.decide_and_freeze(config)
 
         logging.info("dsh-pet-standalone 启动 (slot: %s, instance: %s)", slot_id, instance_id)
-        _cleanup_stale_runtime_dirs()
-        stale_removed = autostart_mod.cleanup_stale_entries()
+        mavis_enabled = os.environ.get("DAFEIYU_MAVIS") == "1"
+        if not mavis_enabled:
+            _cleanup_stale_runtime_dirs()
+        stale_removed = 0 if mavis_enabled else autostart_mod.cleanup_stale_entries()
         if stale_removed:
             logging.info("已清理 %d 个指向不存在路径的开机自启项", stale_removed)
 
@@ -5293,6 +5295,9 @@ def main(argv: list[str] | None = None, enable_chat: bool = True) -> int:
                               spawn_offset=_read_spawn_offset_env(), overlay_gate=overlay_gate)
         try:
             controller.start()
+            if mavis_enabled:
+                from assistant.pet_bridge import attach
+                controller.mavis = attach(app, controller, config)
         except Exception as exc:
             logging.exception("启动失败")
             _show_startup_error("dsh-pet-standalone", str(exc))

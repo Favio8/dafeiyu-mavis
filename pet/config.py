@@ -523,6 +523,8 @@ def chat_secret_carryover(chat: Any) -> dict[str, dict]:
 
 
 def _default_base():
+    if os.environ.get("DAFEIYU_MAVIS") == "1":
+        return Path(os.environ.get("MAVIS_DATA_HOME") or os.environ.get("LOCALAPPDATA") or Path.home())
     if sys.platform == "win32":
         return Path(os.environ.get("APPDATA") or Path.home())
     if sys.platform == "darwin":
@@ -537,6 +539,8 @@ def _app_dir_name() -> str:
     packaging/build_variant.py（VARIANT = "webm-chat" 等），
     使 Chat / 无 Chat 等变体各自使用独立的配置目录、会话与自启项。
     """
+    if os.environ.get("DAFEIYU_MAVIS") == "1":
+        return "DaFeiYuMavis"
     try:
         from build_variant import VARIANT  # 仅打包产物中存在
 
@@ -1401,6 +1405,10 @@ class Config:
         """旧版各变体共用 %APPDATA%/dsh-pet-standalone；升级后首次运行时
         把该目录的 config.json 与 sessions/ 一次性复制到变体独立目录，
         避免用户设置与聊天会话“消失”。仅在新目录尚不存在时执行。"""
+        # Mavis is a new product namespace, not another upstream packaging variant.
+        # Never copy the user's old chat records or possible plaintext credentials.
+        if os.environ.get("DAFEIYU_MAVIS") == "1":
+            return
         if self.instance_id:
             return  # 多开实例不参与旧版迁移，避免把单开配置复制给每个实例
         if APP_DIR_NAME == "dsh-pet-standalone" or self.path.exists():

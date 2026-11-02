@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Mavis — M core</title>
+  <rect x="8" y="8" width="240" height="240" rx="58" fill="#002FA7"/>
+  <path d="M54 101a78 78 0 0 1 148 0M202 155a78 78 0 0 1-148 0" fill="none" stroke="#6CA5FF" stroke-width="9" stroke-linecap="round"/>
+  <path d="M78 164V95l50 48 50-48v69" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="128" cy="73" r="8" fill="#7DE2F5"/>
+</svg>

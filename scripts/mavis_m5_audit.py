@@ -77,28 +77,39 @@ def main():
     needles=[]
     if secret:
         needles=[secret.encode(),secret.encode("utf-16-le"),base64.b64encode(secret.encode())]
-    tracked=subprocess.check_output(["git","ls-files","-z"],cwd=root).decode().split("\0")
+    tracked=subprocess.check_output(["git","ls-files","--cached","--others","--exclude-standard","-z"],cwd=root).decode().split("\0")
     paths=[root/name for name in tracked if name]
-    paths += [p for p in (root/".scratch/m5").rglob("*") if p.is_file() and p.suffix.lower() in {".json",".jsonl",".txt",".log",".db",".zip",".xml"}]
-    hits=[];scanned=0;media=[]
+    data_home=Path(os.environ.get("MAVIS_DATA_HOME") or os.environ.get("LOCALAPPDATA") or Path.home())/"DaFeiYuMavis"
+    runtime_roots=[root/".scratch"/stage for stage in ("m0-m1","m2","m3","m4","m5")]+[data_home]
+    for directory in runtime_roots:
+        paths += [p for p in directory.rglob("*") if p.is_file() and not p.is_symlink() and (p.suffix.lower() in {".json",".jsonl",".txt",".log",".db",".zip",".xml",".bak"} or p.name.endswith(("-wal","-shm")))]
+    hits=[];scanned=0;media=[];skipped=[];archive_errors=[];large_entries=[]
     for path in dict.fromkeys(paths):
-        if not path.is_file() or path.stat().st_size>64*1024**2:continue
+        if not path.is_file():continue
+        name=str(path.relative_to(root)) if path.is_relative_to(root) else "<MAVIS_DATA>/"+str(path.relative_to(data_home))
+        if path.stat().st_size>64*1024**2:
+            skipped.append(name);continue
         data=path.read_bytes();scanned+=1
-        name=str(path.relative_to(root))
         if any(needle in data for needle in needles):hits.append(name)
         if path.suffix==".zip":
-            with zipfile.ZipFile(path) as archive:
-                for entry in archive.infolist():
-                    if entry.filename.lower().endswith((".png",".jpg",".wav",".mp3")):media.append(name+":"+entry.filename)
-                    if entry.file_size<8*1024**2 and any(needle in archive.read(entry) for needle in needles):hits.append(name+":"+entry.filename)
+            try:
+                with zipfile.ZipFile(path) as archive:
+                    diagnostic="diagnostics.json" in archive.namelist()
+                    for entry in archive.infolist():
+                        if diagnostic and entry.filename.lower().endswith((".png",".jpg",".wav",".mp3")):media.append(name+":"+entry.filename)
+                        if entry.file_size>=8*1024**2:
+                            large_entries.append(name+":"+entry.filename);continue
+                        if any(needle in archive.read(entry) for needle in needles):hits.append(name+":"+entry.filename)
+            except (zipfile.BadZipFile,RuntimeError,NotImplementedError) as exc:
+                archive_errors.append({"file":name,"code":type(exc).__name__})
     report={"system":system,"software":browsers,"python_packages":packages,"ffmpeg":outputs,
         "models":MANIFEST["models"],"upstream_model_metadata":upstream,
-        "privacy":{"vault_credential_present":bool(secret),"files_scanned":scanned,"credential_matches":hits,"diagnostic_archive_media":media,"packaged_installer":"not built; pending M6"},
+        "privacy":{"vault_credential_present":bool(secret),"files_scanned":scanned,"credential_matches":hits,"diagnostic_archive_media":media,"files_over_64MiB_not_scanned":skipped,"archive_inspection_errors":archive_errors,"archive_entries_over_8MiB_not_scanned":large_entries,"runtime_namespace_exists":data_home.is_dir(),"packaged_installer":"not built; pending M6"},
         "support":{"this_windows_build":"local automated checks and private fixture only","Windows10_other_builds":"not validated","ARM":"not validated","RDP":"not validated","administrator_windows":"not supported; medium-integrity only","microphone":"not available; real capture pending","mixed_dpi":"not validated"},
         "rights":"code MIT does not relicense character assets, Qt/FFmpeg or model weights; unresolved rights remain unresolved"}
     (output/"inventory.json").write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
-    print(json.dumps({"scanned":scanned,"credential_match_files":hits,"diagnostic_archive_media":media,"evidence":str(output)},ensure_ascii=False))
-    return 1 if hits or media else 0
+    print(json.dumps({"scanned":scanned,"credential_match_files":hits,"diagnostic_archive_media":media,"skipped_large_files":len(skipped),"archive_inspection_errors":len(archive_errors),"skipped_large_archive_entries":len(large_entries),"evidence":str(output)},ensure_ascii=False))
+    return 1 if hits or media else 2 if skipped or archive_errors or large_entries else 0
 
 
 if __name__=="__main__":raise SystemExit(main())

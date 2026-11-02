@@ -1,6 +1,10 @@
 # 文档索引
 
-## DaFeiYu Mavis 增量基线（2026-11-02）
+## DaFeiYu Mavis 增量基线（2026-11-03）
+
+M5安全收口：[安全/稳定性报告与原始失败](reports/M5_SAFETY_STABILITY.md)、[支持与实测矩阵](SUPPORT_MATRIX.md)、[组件/素材许可清单](MAVIS_LICENSE_INVENTORY.md)。修改真实派发、停止、权限、验证、隐私或准备发布前必读。固定50项通过不等于M5 Gate通过；8小时运行中，急停专项15/20，其他缺口见[实施状态](IMPLEMENTATION_STATUS.md#m5-最新状态)。
+
+PR报告存档：[PR-REPORT-MAVIS-M5-2026-11-03.md](PR-REPORT-MAVIS-M5-2026-11-03.md)，本轮逐文件修改、性能与实机记录入口；审查本轮累计变更前必读。
 
 M4控制中心：[实现、实际页面查看与统一验收清单](reports/M4_UI_ACCEPTANCE.md)。记录与页面来自真实事件/SQLite；本轮按用户要求未跑功能回归，DEV-032～038状态见[实施状态](IMPLEMENTATION_STATUS.md#m4-最新状态)。
 
@@ -14,7 +18,7 @@ PR 报告存档：[PR-REPORT-MAVIS-M2-2026-11-02.md](PR-REPORT-MAVIS-M2-2026-11-
 
 | 文档 | 内容 | 何时必读 |
 |---|---|---|
-| [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | DEV-001～038 实际状态、证据与边界 | 继续开发与统一验收前必读 |
+| [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | DEV-001～045 实际状态、证据与边界 | 继续开发与统一验收前必读 |
 | [UPSTREAM_BASELINE.md](UPSTREAM_BASELINE.md) | 固定 commit、依赖/许可与复用映射 | 同步上游或升级依赖前必读 |
 | [WINDOWS_USE_ADAPTER_AUDIT.md](WINDOWS_USE_ADAPTER_AUDIT.md) | 真实接口、隐式 shell/联网和逐动作拦截 | 接入任何 Windows-Use 代码前必读 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 现有进程/线程/许可/停止架构 | 改任务、IPC、UI 事件桥前必读 |

@@ -86,7 +86,28 @@ uv pip sync --python .venv-audit/Scripts/python.exe requirements-audit.lock.txt
 
 以上 M0/M1 基线执行没有 DeepSeek API 调用或真实键鼠注入；M2 的后续真实试验见对应报告。
 
-## M3 本地语音
+## M5 安全与资源复验
+
+最新状态及原始失败见 [M5报告](reports/M5_SAFETY_STABILITY.md)。以下命令不更改系统权限、不操作用户文件。急停专项只在独立nonce窗口输入m；请人工点击START并保持该窗口前台。它使用WM_HOTKEY消息，不能冒充物理按键；另用 `mavis_physical_stop.py` 补物理证据。不要同时运行两个控制专项，Windows会话级lease应拒绝第二个执行者。
+
+```powershell
+.venv/Scripts/python.exe scripts/mavis_tests.py --name m5-security tests/mavis/test_m5_safety.py tests/mavis/test_m5_boundaries.py -q
+.venv/Scripts/python.exe scripts/mavis_native_worker_probe.py
+.venv/Scripts/python.exe scripts/mavis_stop_stress.py --wait-start
+.venv/Scripts/python.exe scripts/mavis_m5_audit.py --fetch-licenses
+.venv/Scripts/python.exe scripts/mavis_upstream_checks.py
+```
+
+10k专用库初次构建会写10,000个真实的test-mode拒绝Task，不操作电脑。生成后可用 `--database <该次输出/state-test.db>` 复制已有库复测查询；精确文件名以脚本结果为准。
+
+```powershell
+.venv/Scripts/python.exe scripts/mavis_history_benchmark.py --records 10000
+.venv/Scripts/python.exe scripts/mavis_performance.py --seconds 28800 --warmup 600 --voice-models .scratch/m3/models
+```
+
+资源脚本默认完整桌宠；voice-models使用合成静音驱动真实本地推理，没有打开麦克风。短时CPU/心跳不能代替10分钟稳态和UI点击延迟。当前冻结源码 `91b2947` 的8小时实例输出位于 `.scratch/m5/performance/soak-91b2947/`，**正在运行时不要重复启动或移动其source worktree**。查看progress.json；只有自然结束的result.json才能作8小时结果。安装包、真人麦克风、混合DPI和缺失M2场景继续待验证。
+
+## M3 本地语音（阶段记录）
 
 M4控制中心已接入数据库检索/分页、设置和数据导出；正常入口仍为 `python -m assistant`。隔离查看页面可运行 `.venv/Scripts/python.exe scripts/mavis_m4_preview.py`，不自动开麦或授权。最后统一验收步骤见 [M4_UI_ACCEPTANCE](reports/M4_UI_ACCEPTANCE.md)，本轮没有跑功能测试套件。
 

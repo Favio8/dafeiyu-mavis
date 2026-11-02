@@ -1,4 +1,10 @@
-# Mavis M0/M1 实际架构
+# Mavis 实际架构与阶段演进
+
+**M5最新（2026-11-03）：** `Controller → TaskService/ToolGateway → NativeSession → assistant.native_worker` 已替换旧的Host线程内原生调用；UIA/COM、逐字符SendInput及Windows会话级lease只在固定子进程中运行。每次execute请求对应已消费的一次性许可；子进程只有闭合工具Schema，不能更改策略/审批/数据库。测试fixture必须由CLI显式test-mode启动，正常产品不启用。
+
+Host先置nonce绑定的Win32共享停止事件，再终止已核对PID/进程出生/解释器并持有实际句柄的worker。原生最后派发点检查同一停止事件；低级键鼠观察、上下文watchdog及锁屏/休眠通知均会撤权，不吞用户输入。父进程消失时子进程退出。仅释放本程序未完成的Unicode KEYUP，不释放用户修饰键。
+
+窗口观察增加用户/进程/窗口身份摘要；新草稿绑定文档摘要与编辑区runtime ID。读回保留尾部换行，最终验证方法须匹配Goal；模型话语和工具ok仍不能产生成功。连接诊断也使用固定可终止进程，Key仅由该进程从固定凭据引用读取。统计继续来自同一SQLite。实测边界和未过门禁见 [M5报告](reports/M5_SAFETY_STABILITY.md)。下文保留M0～M4历史架构，不将其中“未交付worker”等描述当成最新状态。
 
 **M3/M4 增量：** 语音独立worker复用私有IPC，最终ASR进入原Controller/TaskService。控制中心通过同一写者的history/details/CRUD命令读取SQLite，设置持久化与诊断预览/导出亦由Controller处理，UI只收queued事件。非秘密设置只更新未来Task，创建时记录配置事件。动画桥查找上游实际素材，独立临时呈现抑制位不覆盖用户显隐或clip状态。详见 [M3](reports/M3_VOICE_E2E.md) 和 [M4](reports/M4_UI_ACCEPTANCE.md)；M4按用户要求尚未做统一功能验收。下文M0/M1描述为历史快照，新增能力以最新报告为准。
 

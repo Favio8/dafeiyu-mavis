@@ -336,3 +336,13 @@ headless，本机两个发行名同版本并存、都提供 `cv2` 顶层模块�
   `scripts/export_android_assets.py::copy_notices`，2026-10-17 起）。
 - 手机使用的 WebP 动画与图标由第 2 节角色素材派生，继续保留其署名和
   个人非商业使用限制。工具与验收说明见 [Android 文档](docs/ANDROID.md)。
+
+## 10. DaFeiYu Mavis 增量许可核对（2026-11-03）
+
+独立Mavis的实际Python组件、FFmpeg和语音模型来源见 [许可清单](docs/MAVIS_LICENSE_INVENTORY.md)，固定模型文件与SHA-256见 `assistant/assets/voice-models.json`。本节不替代上方原素材、音效与商标通知，也不将代码MIT扩展到素材或权重。
+
+- KWS：pkufool的固定sherpa-onnx模型，ModelScope元数据Apache-2.0。
+- ASR：damo基础模型元数据Apache-2.0；crazyant的ONNX转换资源许可字段为空，转换包的权利链尚待核实，不作已确认分发声明。
+- VAD：Silero VAD，来源和MIT许可链接在固定manifest中。
+- 当前imageio-ffmpeg实际二进制含GPL及version3构建选项；QtMultimedia日志中的另一份FFmpeg为LGPL2.1+，不能将两者混为单一宽松许可。
+- 角色动画沿用原非商业边界；本轮没有核实新的商用或再分发权利。M6实际安装产物仍须带齐适用许可正文和通知，并再次核对二进制清单。

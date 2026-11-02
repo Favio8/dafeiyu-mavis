@@ -1,5 +1,7 @@
 # M1 工具与许可契约
 
+M5增量（2026-11-03）：上述受限原生工具由 `NativeSession` 逐次转发至固定native_worker；Host仍持有全部策略、审批、预算与Permit。observe/read_text是只读请求，execute严格校验闭合Action Schema与task/generation。新增共享停止事件、输入/会话撤权、实际PID句柄与草稿身份，不扩大真实工具集合。`FixtureDraftBackend`只用于CLI test-mode的nonce自有窗口，生产setup不能启用。见 [M5报告](reports/M5_SAFETY_STABILITY.md)。
+
 M2 增量见 [M2 报告](reports/M2_DESKTOP_E2E.md)：在明确的本机运行期授权、热键和 lease 下，仅固定 Notepad launch、`desktop.focus_window`、`desktop.focus_control`、单 BMP 字符 `desktop.type_text` 有受限原生实现。其余工具仍没有真实后端。下表是 M1 历史基线，不代表已扩大到通用电脑操作。
 
 2026-11-02。实际代码为 `assistant/contracts.py`、`actions.py`、`policy.py`、`gateway.py`；与 [架构](ARCHITECTURE.md) 和 [审计](WINDOWS_USE_ADAPTER_AUDIT.md) 一起阅读。

@@ -83,7 +83,7 @@ def main():
     gui=subprocess.Popen([sys.executable,str(Path(__file__).resolve()),"--fixture",title],env=env,
         stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,encoding="utf-8",
         creationflags=subprocess.CREATE_NO_WINDOW if os.name=="nt" else 0)
-    rows=[]
+    rows=[];setup_error=None
     gui_replies=queue.Queue()
     def replies():
         for line in gui.stdout:
@@ -192,6 +192,8 @@ def main():
             if not row["passed"] and trigger is None:
                 break
             time.sleep(.15)
+    except (queue.Empty,RuntimeError,OSError) as exc:
+        setup_error="FIXTURE_START_OR_REPLY_TIMEOUT" if isinstance(exc,queue.Empty) else type(exc).__name__
     finally:
         try:
             gui.stdin.write("quit\n");gui.stdin.flush()
@@ -207,8 +209,9 @@ def main():
             if gui.poll() is None:gui.terminate()
             gui.wait(timeout=3)
     while len(rows)<20:
-        rows.append({"trial":len(rows)+1,"scenario":("model_wait","long_input","page_wait","tool_error")[len(rows)//5],"passed":False,"error":"NOT_RUN_AFTER_SETUP_FAILURE"})
+        rows.append({"trial":len(rows)+1,"scenario":("model_wait","long_input","page_wait","tool_error")[len(rows)//5],"passed":False,"error":setup_error or "NOT_RUN_AFTER_SETUP_FAILURE"})
     result={"trials":rows,"passed_count":sum(row["passed"] for row in rows),"required":20,"physical_key_test":False,
+        "setup_error":setup_error,
         "scope":"actual per-action gateway and SendInput in a private nonce-bound child fixture; network/page/tool faults injected",
         "passed":len(rows)==20 and all(row["passed"] for row in rows)}
     (output / "result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")

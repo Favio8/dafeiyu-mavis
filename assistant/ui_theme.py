@@ -34,6 +34,9 @@ QPushButton[role='stop'] {{ background:{page}; color:{'#FF9292' if dark else '#B
 QPushButton[role='stop']:hover {{ background:{'#542831' if dark else '#FFF1F3'}; }}
 QLineEdit, QTextEdit, QTreeWidget {{ background:{page}; color:{text}; border:1px solid {line}; border-radius:7px; padding:7px; selection-background-color:#002FA7; selection-color:white; }}
 QLineEdit {{ min-height:24px; }}
+QComboBox, QSpinBox {{ background:{page}; color:{text}; border:1px solid {line}; border-radius:6px; padding:6px; min-height:22px; }}
+QProgressBar {{ border:1px solid {line}; border-radius:5px; background:{side}; text-align:center; color:{text}; min-height:20px; }}
+QProgressBar::chunk {{ background:{selected}; border-radius:4px; }}
 QPushButton:focus, QLineEdit:focus, QTextEdit:focus, QTreeWidget:focus, QCheckBox:focus {{ border:1px solid #4D6BFE; }}
 QListWidget#navigation::item:focus {{ border:1px solid #4D6BFE; }}
 QTreeWidget::item {{ padding:8px 4px; border-bottom:1px solid {line}; }}

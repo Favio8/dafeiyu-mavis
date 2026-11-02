@@ -22,7 +22,7 @@ class NativeTasks:
         self.owned_draft = None
         self.gateway = None
 
-    def run(self, command: str) -> None:
+    def run(self, command: str, *, source="text", original_text=None) -> None:
         """Execute only explicit launch / single-line input intents after local scope consent."""
         import comtypes
         from comtypes import COMError
@@ -30,7 +30,8 @@ class NativeTasks:
         is_launch = command.strip() == "打开记事本"
         text = command.removeprefix("输入：") if command.startswith("输入：") else None
         sensitive = redact(command) != command or any(word in command.lower() for word in ("密码", "验证码", "密钥", "password", "api_key"))
-        task = self.service.create("敏感内容已省略" if sensitive else command, goals=(Goal(predicate="window" if is_launch else "uia"),))
+        task = self.service.create("敏感内容已省略" if sensitive else command, source=source,
+            original_text="敏感内容已省略" if sensitive else original_text, goals=(Goal(predicate="window" if is_launch else "uia"),))
         comtypes.CoInitialize()
         lease, watcher = None, None
         try:
@@ -94,7 +95,7 @@ class NativeTasks:
                     control_id=self.service.observation.control_id, text=character))
             self.service.finish([verify_text(self.service.task, Expected("primary","uia",text), backend.read_text())])
         except (PolicyDenied, InvalidTransition, OSError, RuntimeError, COMError) as exc:
-            if self.service.task.status in TERMINAL:
+            if self.service.task.status in TERMINAL or self.service.task.status == S.PAUSED:
                 return
             code = str(exc) if isinstance(exc,PolicyDenied) else "NATIVE_TASK_ERROR"
             self.service.persist(self.service.task, "native.error", code)
@@ -112,6 +113,11 @@ class NativeTasks:
             comtypes.CoUninitialize()
 
     def _dispatch(self, action) -> None:
+        if self.service.pause_requested.is_set():
+            self.service.pause_requested.clear()
+            self.service.pause()
+            self.service.pause_acknowledged()
+            raise InvalidTransition("PAUSED_BEFORE_DISPATCH")
         result = self.gateway.dispatch(self.gateway.propose(action).id, action)
         if result.status != "ok":
             raise PolicyDenied(result.error_code or "TOOL_RESULT_UNKNOWN")

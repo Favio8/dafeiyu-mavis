@@ -29,7 +29,7 @@ class Message(Record):
     seq: int = Field(ge=1)
     task_id: UUID
     generation: int = Field(ge=1)
-    kind: Literal["hello", "ready", "ping", "pong", "hang", "crash", "stop", "error"]
+    kind: Literal["hello", "ready", "ping", "pong", "hang", "crash", "stop", "error", "voice_config", "voice_listen", "voice_record", "voice_end", "voice_cancel", "voice_speak", "voice_mute", "voice_event"]
     payload: str = Field(default="", max_length=8000)
 
 
@@ -69,6 +69,10 @@ class Receiver:
 
 class WorkerSupervisor:
     """Own exactly one fixed worker process, reclaimable without waiting on its requests."""
+    MODULE = "assistant.worker"
+    HOST_KINDS = {"hello", "ping", "stop"}
+    WORKER_KINDS = {"ready", "pong", "error"}
+
     def __init__(self, stop: threading.Event, *, on_message=None, test_mode: bool = False):
         self.stop = stop
         self.on_message = on_message or (lambda message: None)
@@ -93,7 +97,7 @@ class WorkerSupervisor:
             env = {k: v for k, v in os.environ.items() if k.upper() in {
                 "SYSTEMROOT", "WINDIR", "PATH", "TEMP", "TMP", "LOCALAPPDATA", "APPDATA", "USERPROFILE"}}
             env.update(PYTHONUTF8="1", ANONYMIZED_TELEMETRY="false")
-            command = [sys.executable, "-m", "assistant.worker"]
+            command = [sys.executable, "-m", self.MODULE]
             if self.test_mode:
                 command.append("--test-mode")
             self.process = subprocess.Popen(command, cwd=Path(__file__).resolve().parents[1], env=env,
@@ -105,7 +109,7 @@ class WorkerSupervisor:
 
     def send(self, kind: str, payload: str = "") -> None:
         """Write a typed request. This can block only the controller, never the watchdog."""
-        if kind not in {"hello", "ping", "stop"} and not (self.test_mode and kind in {"hang", "crash"}):
+        if kind not in self.HOST_KINDS and not (self.test_mode and kind in {"hang", "crash"}):
             raise ProtocolError("host command not allowed")
         with self._send_lock:
             if self.process is None or self.process.poll() is not None or self.stop.is_set():
@@ -124,7 +128,7 @@ class WorkerSupervisor:
                 if not data:
                     break
                 message = receiver.accept(data)
-                if message.kind not in {"ready", "pong", "error"}:
+                if message.kind not in self.WORKER_KINDS:
                     raise ProtocolError("worker command not allowed")
                 if message.kind == "ready":
                     if self.ready.is_set() or not message.payload.isdecimal() or int(message.payload) <= 0:

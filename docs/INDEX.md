@@ -2,6 +2,8 @@
 
 ## DaFeiYu Mavis 增量基线（2026-11-02）
 
+M3 语音入口：[实现、固定回放与真人验收步骤](reports/M3_VOICE_E2E.md)。本机无麦克风，真人连续说话、声学防自唤醒与设备释放仍待实测；DEV-024～031 的准确状态见 [IMPLEMENTATION_STATUS](IMPLEMENTATION_STATUS.md#m3-最新状态)。
+
 M2 最新入口：[受控实机报告与命令](reports/M2_DESKTOP_E2E.md)、[ADR-002 受限原生试验](adr/002-m2-controlled-pilot.md)。修改原生观察、授权、输入、模型协议或继续 DEV-015～023 前必读；完整 M2 尚未通过。
 
 PR 报告存档：[PR-REPORT-MAVIS-M2-2026-11-02.md](PR-REPORT-MAVIS-M2-2026-11-02.md)，本轮修改文件说明、性能分析和实机运行记录；审查或继续本轮变更前必读。

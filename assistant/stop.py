@@ -45,6 +45,7 @@ class StopController:
 class EmergencyHotkey:
     """Register Ctrl+Alt+F12 on a dedicated Windows thread, with visible failure state."""
     HOTKEY_ID = 0x4D56
+    VKEY = 0x7B
 
     def __init__(self, stop: StopController):
         self.stop = stop
@@ -72,7 +73,7 @@ class EmergencyHotkey:
         kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
         self.thread_id = kernel32.GetCurrentThreadId()
         user32.RegisterHotKey.argtypes = [wintypes.HWND, ctypes.c_int, wintypes.UINT, wintypes.UINT]
-        self.registered = bool(user32.RegisterHotKey(None, self.HOTKEY_ID, 0x4003, 0x7B))
+        self.registered = bool(user32.RegisterHotKey(None, self.HOTKEY_ID, 0x4003, self.VKEY))
         if not self.registered:
             self.error = f"HOTKEY_UNAVAILABLE_{ctypes.get_last_error()}"
         self.ready.set()
@@ -89,10 +90,13 @@ class EmergencyHotkey:
                     break
                 if message.message == 0x0312 and message.wParam == self.HOTKEY_ID:
                     self.physical_seen = True
-                    self.stop.trip()
+                    self._trigger()
         finally:
             user32.UnregisterHotKey(None, self.HOTKEY_ID)
             self.registered = False
+
+    def _trigger(self):
+        self.stop.trip()
 
     def close(self) -> None:
         """Release only this thread's hotkey and end its message loop."""

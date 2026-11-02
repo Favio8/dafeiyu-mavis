@@ -12,6 +12,7 @@ from .stop import EmergencyHotkey, StopController
 from .ui import ControlCenter, LABELS
 from .execution_overlay import ExecutionOverlay
 from .branding import application_icon
+from .voice_host import VoiceHost
 
 
 class PetBridge(QObject):
@@ -28,6 +29,11 @@ class PetBridge(QObject):
         self.hotkey.start()
         self.controller = Controller(config.dir, self.stop, test_mode=os.environ.get("MAVIS_TEST_MODE") == "1", hotkey=self.hotkey)
         self.window = ControlCenter(self.controller, self.stop, self.hotkey)
+        self.voice = VoiceHost(self.controller, self.stop, config.dir, self)
+        self.voice.bind_window(self.window)
+        self.window.install_voice(self.voice)
+        self.last_voice_state = None
+        self.voice.changed.connect(self._voice_state)
         self.overlay = ExecutionOverlay(self.controller.control_activity, self.stop.event, self)
         self.window.preview_requested.connect(self.overlay.preview)
         self.window.glow_changed.connect(self.overlay.set_enabled)
@@ -60,11 +66,23 @@ class PetBridge(QObject):
         self.menu = menu
         first = menu.actions()[0] if menu.actions() else None
         self.actions = []
-        for text, callback in [("Mavis 控制中心", self.show), ("立即停止助手任务", self.stop.trip)]:
+        for text, callback in [("Mavis 控制中心", self.show), ("语音录音", lambda: self.voice.record("button")), ("关闭麦克风", lambda: self.voice.listen(False)), ("立即停止助手任务", self.stop.trip)]:
             action = QAction(text, menu)
             action.triggered.connect(callback)
             menu.insertAction(first, action)
             self.actions.append(action)
+
+    @Slot(object)
+    def _voice_state(self, value):
+        state = value["state"]
+        if self.shell is None or state == self.last_voice_state:
+            return
+        self.last_voice_state = state
+        text = {"CAPTURING": "我在听……", "TRANSCRIBING": "正在本地识别", "PLAYBACK_GUARD": "播报保护中", "ERROR": "语音暂不可用，请查看控制中心"}.get(state)
+        if text:
+            from pet.multi_window_shared import presentation_targets
+            for target in presentation_targets(self.shell):
+                target.show_bubble(text, duration_ms=2500)
 
     def show(self) -> None:
         """Restore the control centre from the existing tray."""
@@ -105,6 +123,7 @@ class PetBridge(QObject):
         self.app.removeEventFilter(self)
         self.timer.stop()
         self.stop.trip()
+        self.voice.close()
         self.overlay.close()
         self.controller.close()
         self.hotkey.close()

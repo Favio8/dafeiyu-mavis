@@ -52,6 +52,7 @@ class TaskService:
         self._created = self._last = self.clock()
         self._wait_since = self._last
         self._generation = 0
+        self.pause_requested = threading.Event()
 
     def persist(self, task: Task, kind: str, payload: str = "", **records):
         """Commit a transition and publish it. Storage errors revoke execution immediately."""
@@ -70,16 +71,17 @@ class TaskService:
                 continue
         return event
 
-    def create(self, text: str, *, source: str = "text", mode: str = "live", goals: tuple[Goal, ...] | None = None) -> Task:
+    def create(self, text: str, *, source: str = "text", mode: str = "live", goals: tuple[Goal, ...] | None = None, original_text: str | None = None) -> Task:
         """Start one task from a final command; reject empty text or an occupied desktop."""
         if self.task is not None and self.task.status not in TERMINAL:
             raise Busy("已有活动任务，请先停止或等待结束")
         if self.stop.is_set():
             raise InvalidTransition("急停已锁定，请明确复位后创建新任务")
         self._generation += 1
+        self.pause_requested.clear()
         created = self.clock()
         clean = redact(text.strip())
-        task = Task(original_text=clean, final_text=clean, title=clean[:80], source=source, mode=mode,
+        task = Task(original_text=redact(original_text.strip()) if original_text is not None else clean, final_text=clean, title=clean[:80], source=source, mode=mode,
                     generation=self._generation, goals=goals if goals is not None else (Goal(),))
         self.persist(task, "task.created", clean)
         self._created = self._last = self._wait_since = created

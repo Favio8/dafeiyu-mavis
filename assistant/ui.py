@@ -8,7 +8,7 @@ from PySide6.QtGui import QPalette, QColor, QIcon
 from PySide6.QtWidgets import (
     QHBoxLayout, QLabel, QLineEdit, QListWidget, QPushButton, QScrollArea,
     QStackedWidget, QTextEdit, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QCheckBox,
-    QListWidgetItem, QFrame, QGridLayout,
+    QListWidgetItem, QFrame, QGridLayout, QTabWidget,
 )
 
 from pet.settings_widgets import SettingRow, SettingsCard
@@ -124,8 +124,8 @@ class ControlCenter(QWidget):
             ("模型与连接", "默认供应商：DeepSeek", "连接和工具能力分别验证。测试只发送固定测试文本，可能产生 API 费用，不操作电脑。Key 通过本地凭据工具安全配置。"),
             ("电脑操作权限", "受限记事本操作 · 默认关闭", "只支持启动记事本，以及在本次助手新开的空白草稿中输入最多16个单行字符。不保存文件。其他窗口、删除、覆盖、shell 和管理员窗口均不支持。"),
             ("桌宠外观", "你的桌面伙伴", "右键桌宠可调整角色与外观。任务状态会通过桌宠气泡提示。"),
-            ("数据与隐私", "任务记录只保存在本机", "SQLite 未加密；测试库与正式库分开。当前不采集音频、不保存截图、不发送遥测。API Key 只允许凭据库保存。"),
-            ("关于与诊断", "开发阶段：M2 受限试验", "仅有受限记事本原生路径。完整 Windows-Use、网页、保存、视觉与语音端到端验收尚未通过。"),
+            ("数据与隐私", "任务记录只保存在本机", "SQLite 未加密；测试库与正式库分开。监听开启时仅在内存中采集音频，本地识别，默认不落盘、不上传；不保存截图、不发送遥测。API Key 只允许凭据库保存。"),
+            ("关于与诊断", "开发阶段：M3 本地语音接入", "语音与文字共用任务和权限链。当前电脑操作仍限记事本；网页、保存与完整视觉能力尚未验收。"),
         ]
         for title, status, description in notes:
             panel, layout = self._page(title)
@@ -189,6 +189,16 @@ class ControlCenter(QWidget):
                 button.setIconSize(QSize(16, 16))
             if not button.accessibleName():
                 button.setAccessibleName(button.text())
+
+    def install_voice(self, host):
+        from .voice_ui import VoicePanel
+        old = self.stack.widget(2)
+        self.stack.removeWidget(old)
+        old.deleteLater()
+        self.voice_panel = VoicePanel(host, self.controller)
+        self.stack.insertWidget(2, self.voice_panel)
+        host.changed.connect(lambda value: self.summary_values[2].setText({"OFF": "已关闭", "ARMED": "等待唤醒", "CAPTURING": "录音中", "TRANSCRIBING": "识别中", "PLAYBACK_GUARD": "播报保护", "ERROR": "不可用", "LOADING": "加载中"}.get(value["state"], value["state"])))
+        self.summary_values[2].setText("已关闭")
 
     def _preview_glow(self):
         if self.stop.event.is_set():
@@ -301,6 +311,10 @@ class ControlCenter(QWidget):
     def _history(self) -> None:
         panel, layout = self._page("任务记录")
         layout.addWidget(label("显示当前模式最近 50 条真实记录；点击查看有序事件与审批。", "muted"))
+        self.history_tabs = QTabWidget()
+        task_page = QWidget()
+        task_layout = QVBoxLayout(task_page)
+        task_layout.setContentsMargins(0, 8, 0, 0)
         self.history = QTreeWidget()
         self.history.setHeaderLabels(["指令", "状态", "来源"])
         self.history.setRootIsDecorated(False)
@@ -311,8 +325,15 @@ class ControlCenter(QWidget):
         self.detail.setReadOnly(True)
         self.detail.setAccessibleName("任务事件与审批详情")
         self.detail.setPlaceholderText("选择一条任务，查看执行、审批与验证详情。")
-        layout.addWidget(self.history)
-        layout.addWidget(self.detail)
+        task_layout.addWidget(self.history)
+        task_layout.addWidget(self.detail)
+        self.history_tabs.addTab(task_page, "任务")
+        self.voice_attempts = QTreeWidget()
+        self.voice_attempts.setHeaderLabels(["唤醒词", "结果", "时长 ms"])
+        self.voice_attempts.setRootIsDecorated(False)
+        self.voice_attempts.setAccessibleName("语音尝试记录")
+        self.history_tabs.addTab(self.voice_attempts, "语音尝试")
+        layout.addWidget(self.history_tabs)
         self.stack.addWidget(panel)
 
     def _selection(self) -> None:
@@ -364,6 +385,10 @@ class ControlCenter(QWidget):
         self.history.setColumnWidth(0, max(180, self.history.width() - 220))
         self.history.verticalScrollBar().setValue(scroll)
         self.history.blockSignals(False)
+        self.voice_attempts.clear()
+        results = {"command": "有效指令", "no_speech": "无有效语音", "empty": "空指令/已取消", "error": "错误", "busy_ignored": "忙碌未排队"}
+        for attempt in snapshot.get("voice_attempts", []):
+            self.voice_attempts.addTopLevelItem(QTreeWidgetItem([attempt["wakeword"], results[attempt["result"]], str(attempt["audio_duration_ms"])]))
         self._reflect_stop()
 
     @Slot(object)

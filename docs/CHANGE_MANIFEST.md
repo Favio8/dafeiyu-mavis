@@ -1,5 +1,7 @@
 # 累计实际文件清单（M0～M2）
 
+M3 语音增量（2026-11-02）：相对同步提交 `12b0d1e` 的逐模块变更清单见 [M3报告](reports/M3_VOICE_E2E.md#本轮修改映射)。原累计表是此前阶段快照；模型缓存、合成 WAV、SQLite 和凭据均不随本次源码发布。
+
 后续 UI 增量（2026-11-02）：本表为之前 M2 的行数快照；本次控制中心、图标与透明流光的准确修改清单见 [UI 报告](reports/UI_DESIGN_2026-11-02.md#实际修改文件)，不将整个已有未提交目录重新算作本轮新增。
 
 2026-11-02；相对固定上游 commit 截至本轮的累计增量。没有提交/推送。参见 [M0/M1报告](PR-REPORT-MAVIS-M0-M1-2026-11-02.md)、[M2报告](PR-REPORT-MAVIS-M2-2026-11-02.md) 与 [状态](IMPLEMENTATION_STATUS.md)。上轮清单快照保留在 .scratch/m2/evidence/m0-manifest.json。

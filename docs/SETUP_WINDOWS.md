@@ -81,7 +81,27 @@ uv pip sync --python .venv-audit/Scripts/python.exe requirements-audit.lock.txt
 
 1. 测试模式打开“挂起 worker 测急停”，**物理按** Ctrl+Alt+F12，确认 UI 锁定、子进程结束；同时验证真实按钮和托盘入口。现有自动测试只证明 OS 注册/冲突、WM_HOTKEY 分派及 StopController 链路。
 2. 在 Windows 系统 100/125/150/200% DPI、双屏混合 DPI 下，检查拖拽、点击、托盘、原设置、退出再启动；当前只有单屏真实 96 DPI 与 Qt 1.5 倍缩放样本。
-3. 在用户明确授权录音后实现/运行真实麦克风链；目前没有录音入口，不能拿合成语音声称唤醒准确率。
+3. M3 录音入口已实现。本机当前没有麦克风；接入后按下文运行真人验收，不能拿合成语音声称唤醒准确率或设备已释放。
 4. M2 的文件/GUI 验证只用新建专用目录；现有文件换新名称，不覆盖。`scripts/mavis_fixture_server.py` 提供 loopback 测试页，`mavis_fixture_oracle.py` 只读校验结果。M2 需为测试 HTTP origin 单独设计范围，当前生产 URL 策略只允许 HTTPS。
 
-本轮没有 DeepSeek API 调用、真实键鼠注入、锁屏绕过、管理员窗口接管、消息发送或真实文件删除/覆盖。
+以上 M0/M1 基线执行没有 DeepSeek API 调用或真实键鼠注入；M2 的后续真实试验见对应报告。
+
+## M3 本地语音
+
+应用内进入「语音与唤醒」，下载或导入固定模型，刷新输入设备，先使用默认的校准模式。麦克风初始关闭；校准不执行电脑任务。语音资源保存在 Mavis 数据目录 `voice/models/`，偏好在 `voice-preferences.json`，其中不保存监听或电脑操作授权。
+
+```powershell
+# 无麦克风也能运行的真实本地模型/SAPI回放：使用固定合成句，不操作电脑
+.venv/Scripts/python.exe scripts/mavis_voice_probe.py
+
+# 新机器准备固定模型
+.venv/Scripts/python.exe scripts/mavis_voice_models.py --root .scratch/m3/models --download
+
+# 已有麦克风时的隔离真人验收窗口；关闭窗口即退出
+.venv/Scripts/python.exe scripts/mavis_voice_acceptance.py
+
+# 手动开启真实麦克风后开始30分钟TTS专项
+.venv/Scripts/python.exe scripts/mavis_voice_acceptance.py --tts-soak-seconds 1800
+```
+
+验收顺序、成功判定与准确的待验证项见 [M3_VOICE_E2E](reports/M3_VOICE_E2E.md)。本机已准备 `.scratch/m3/models` 供验收脚本使用，正式应用仍使用其独立模型缓存。原始麦克风音频默认不落盘、不上传。

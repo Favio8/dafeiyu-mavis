@@ -162,6 +162,10 @@ class Store:
         with self.db:
             self.db.execute("INSERT INTO voice_attempts VALUES(?,?,?)", (str(attempt.id), str(attempt.task_id) if attempt.task_id else None, self._json(attempt)))
 
+    def voice_attempts(self) -> list[VoiceAttempt]:
+        self._owner()
+        return [VoiceAttempt.model_validate_json(row[0]) for row in self.db.execute("SELECT data FROM voice_attempts ORDER BY rowid DESC LIMIT 50")]
+
     def close(self) -> None:
         """Close the writer connection on its owning thread."""
         self._owner()

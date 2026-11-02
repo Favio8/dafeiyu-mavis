@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "engine": "sherpa-onnx==1.12.26",
+  "sample_rate": 16000,
+  "hash_origin": "Locally measured against fixed official release assets, not an upstream signed digest",
+  "models": {
+    "kws": {
+      "id": "sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2",
+      "bytes": 32654866,
+      "sha256": "b2f7c89690dc8ce4c6ed6afeab7cd800c36ad1421fb6b6302b4a4b194cf7f35f",
+      "archive_root": "sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01",
+      "files": {
+        "tokens.txt": {
+          "sha256": "72316508d9119696145abc6f1f8cdc46287535c34e5ce7e595f845cb1499cf2e",
+          "bytes": 1627
+        },
+        "encoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx": {
+          "sha256": "dd784973fc9d2fabb3b800d6dcd20fc3b0ca84f8e2415afe54b032878e447f4d",
+          "bytes": 4777666
+        },
+        "decoder-epoch-12-avg-2-chunk-16-left-64.onnx": {
+          "sha256": "fb581d6734511676e246e0dff2fea01b31b0913176cb3ca64576dbab0a177774",
+          "bytes": 675349
+        },
+        "joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx": {
+          "sha256": "f79760052b87239e325f0567c752ad3130b30d92effb847d4307743c20c59a24",
+          "bytes": 65242
+        }
+      },
+      "license": "Apache-2.0",
+      "license_source": "https://www.modelscope.cn/models/pkufool/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01",
+      "tokenizer": "ppinyin"
+    },
+    "asr": {
+      "id": "sherpa-onnx-paraformer-zh-small-2024-03-09",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-paraformer-zh-small-2024-03-09.tar.bz2",
+      "bytes": 77920048,
+      "sha256": "da92b3db5218c5be53aad53e57d1b6e63e7fc98a0e054fbdd6dbe18e9c6b1450",
+      "archive_root": "sherpa-onnx-paraformer-zh-small-2024-03-09",
+      "files": {
+        "tokens.txt": {
+          "sha256": "4b2d964e18b9cf139b473003b6698fb2ed9a2a5ec55b93daa677b28f578897aa",
+          "bytes": 75352
+        },
+        "model.int8.onnx": {
+          "sha256": "3ef6c19369b912f7caf3cef8e545c5ccd1a33d9d7ec792a46668dc41c4b229ec",
+          "bytes": 81828675
+        }
+      },
+      "license": "Apache-2.0 base model; ONNX converter license unspecified",
+      "license_source": "https://www.modelscope.cn/models/damo/speech_paraformer_asr_nat-zh-cn-16k-common-vocab8358-tensorflow1/summary",
+      "tokenizer": "paraformer vocabulary8358"
+    },
+    "vad": {
+      "id": "silero-vad-sherpa-9e2449e1",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx",
+      "bytes": 643854,
+      "sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6",
+      "files": {
+        "silero_vad.onnx": {
+          "bytes": 643854,
+          "sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6"
+        }
+      },
+      "license": "MIT",
+      "license_source": "https://github.com/snakers4/silero-vad/blob/master/LICENSE",
+      "tokenizer": null
+    }
+  }
+}

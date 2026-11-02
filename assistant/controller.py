@@ -11,7 +11,7 @@ from uuid import UUID
 from PySide6.QtCore import QObject, Signal
 
 from .actions import FixtureAction
-from .contracts import Goal, TaskStatus as S, TERMINAL
+from .contracts import Goal, TaskStatus as S, TERMINAL, VoiceAttempt
 from .gateway import FixtureBackend, ToolGateway
 from .ipc import WorkerSupervisor
 from .policy import Policy, PolicyDenied
@@ -25,6 +25,7 @@ class Signals(QObject):
     snapshot = Signal(object)
     details = Signal(object)
     error = Signal(str)
+    feedback = Signal(str)
 
 
 class Controller(threading.Thread):
@@ -45,14 +46,60 @@ class Controller(threading.Thread):
         self._request_lock = threading.Lock()
         self._task_reserved = False
         self.control_activity = ControlActivity()
+        self._feedback_task = None
 
     def _published(self, event) -> None:
         self.control_activity.publish(self.service.task, event.type)
+        task = self.service.task
+        if task and task.mode == "live" and task.status in TERMINAL and task.id != self._feedback_task and not self.stop.event.is_set():
+            self._feedback_task = task.id
+            self.signals.feedback.emit("已验证，操作完成。" if task.status == S.SUCCEEDED and task.verification_status == "passed" else "这次操作未完成，请查看任务记录。")
         self._snapshot()
+
+    def accept_voice(self, value: dict) -> None:
+        """Final local ASR only. Busy commands are diagnosed, never silently queued."""
+        from .voice_engine import normalize_voice_command
+        text = normalize_voice_command(value.get("text", ""))
+        metadata = {key: value[key] for key in VoiceAttempt.model_fields if key in value}
+        try:
+            VoiceAttempt.model_validate({**metadata, "asr_text": None})
+        except ValueError:
+            self.signals.error.emit("语音事件不完整，未建立任务")
+            return
+        if not text:
+            self.submit("voice_diagnostic", {**metadata, "result": "empty", "asr_text": None})
+            return
+        active = self.service and self.service.task and self.service.task.status not in TERMINAL
+        if text in {"停止", "取消", "取消任务", "停止任务"}:
+            self.stop.trip()  # does not queue behind native I/O or model work
+            self.submit("voice_diagnostic", {**metadata, "result": "empty", "asr_text": None})
+            return
+        if active and text in {"暂停", "暂停任务"}:
+            self.service.pause_requested.set()
+            self.submit("voice_pause")
+            self.submit("voice_diagnostic", {**metadata, "result": "empty", "asr_text": None})
+            return
+        if active and self.service.task.status == S.WAITING_CLARIFICATION:
+            self.submit("voice_answer", {**value, "task_id": str(self.service.task.id), "generation": self.service.task.generation})
+            return
+        with self._request_lock:
+            busy = self._task_reserved or active
+            if not busy:
+                self._task_reserved = True
+        if busy:
+            self.submit("voice_diagnostic", {**metadata, "result": "busy_ignored", "asr_text": None})
+            self.signals.error.emit("已有活动任务；这条语音指令未排队")
+            return
+        try:
+            self.commands.put_nowait(("voice_final", {**value, "text": text}))
+        except queue.Full:
+            with self._request_lock:
+                self._task_reserved = False
+            self.signals.error.emit("语音指令未提交，请稍后重说")
 
     def submit(self, command: str, value=None) -> None:
         """Queue a local UI command. No IPC message is routed to this command surface."""
-        if command not in {"record", "exercise", "hang", "approve", "deny", "pause", "resume", "reset", "details", "refresh", "exit", "probe_connection", "probe_tools", "native_scope"}:
+        if command not in {"record", "exercise", "hang", "approve", "deny", "pause", "resume", "reset", "details", "refresh", "exit", "probe_connection", "probe_tools", "native_scope", "voice_diagnostic", "voice_pause", "voice_answer"}:
             raise ValueError("unknown local UI command")
         task_request = command in {"record", "exercise", "hang"}
         if task_request:
@@ -76,7 +123,8 @@ class Controller(threading.Thread):
             "tasks": [t.model_dump(mode="json") for t in self.service.store.tasks(mode="test" if self.test_mode else "live")],
             "approval": pending.model_dump(mode="json") if pending else None,
             "stopped": self.stop.event.is_set(), "test_mode": self.test_mode,
-            "provider_checks": dict(self.provider_checks), "native_enabled":self.native_enabled})
+            "provider_checks": dict(self.provider_checks), "native_enabled":self.native_enabled,
+            "voice_attempts": [v.model_dump(mode="json") for v in self.service.store.voice_attempts()]})
 
     def _probe_model(self, kind: str) -> None:
         import asyncio
@@ -99,7 +147,7 @@ class Controller(threading.Thread):
         except (ProviderError, CredentialUnavailable) as exc:
             self.provider_checks[kind] = str(exc)
 
-    def _new(self, text: str, *, fixture: bool = False):
+    def _new(self, text: str, *, fixture: bool = False, source="text", original_text=None):
         if self.service.task and self.service.task.status not in TERMINAL:
             raise Busy("已有活动任务，请先停止或等待结束")
         if self.worker:
@@ -107,7 +155,7 @@ class Controller(threading.Thread):
             self.worker = None
         if fixture and not self.test_mode:
             raise PolicyDenied("TEST_MODE_REQUIRED")
-        task = self.service.create(text, mode="test" if self.test_mode else "live",
+        task = self.service.create(text, source=source, original_text=original_text, mode="test" if self.test_mode else "live",
                     goals=(Goal(predicate="fixture.counter_equals", description="测试计数器按批准值增加"),) if fixture else None)
         self.service.transition(S.INTERPRETING)
         self.gateway.actions.clear()
@@ -122,6 +170,22 @@ class Controller(threading.Thread):
             return False
         if command in {"probe_connection", "probe_tools"}:
             self._probe_model(command.removeprefix("probe_"))
+        elif command == "voice_diagnostic":
+            self.service.store.voice_attempt(VoiceAttempt.model_validate(value))
+        elif command == "voice_answer":
+            if self.service.accept_callback(UUID(value["task_id"]), value["generation"], "voice.clarification") and self.service.task.status == S.WAITING_CLARIFICATION:
+                self.service.persist(self.service.task, "voice.clarification", str(value["text"]))
+                metadata = {key: value[key] for key in VoiceAttempt.model_fields if key in value}
+                self.service.store.voice_attempt(VoiceAttempt(**{**metadata, "result": "command", "task_id": self.service.task.id, "asr_text": value["text"]}))
+                self.signals.error.emit("澄清答案已记录；当前 M2 执行路径尚未接入澄清后恢复")
+        elif command == "voice_final":
+            metadata = {key: value[key] for key in VoiceAttempt.model_fields if key in value}
+            if self.native_enabled and not self.test_mode:
+                self.native_tasks.run(value["text"], source="voice", original_text=value.get("raw_text", value["text"]))
+            else:
+                self._new(value["text"], source="voice", original_text=value.get("raw_text", value["text"]))
+                self.service.transition(S.FAILED, error_code="COMPUTER_CONTROL_DISABLED")
+            self.service.store.voice_attempt(VoiceAttempt(**{**metadata, "result": "command", "task_id": self.service.task.id, "asr_text": value["text"]}))
         elif command == "record":
             if self.native_enabled and not self.test_mode:
                 self.native_tasks.run(str(value))
@@ -180,7 +244,10 @@ class Controller(threading.Thread):
                     self.service.finish([self.backend.verify(self.service.task, self.expected)])
             if self.worker:
                 self.worker.close()
-        elif command == "pause":
+        elif command in {"pause", "voice_pause"}:
+            if command == "voice_pause" and (not self.service.task or self.service.task.status in TERMINAL or self.service.task.status == S.PAUSED):
+                self._snapshot()
+                return True
             self.service.pause()
             if self.worker:
                 self.worker.close()
@@ -238,7 +305,7 @@ class Controller(threading.Thread):
                     self._snapshot()
                 finally:
                     ended = self.service.task is None or self.service.task.status in TERMINAL
-                    if ended and (command in {"record", "exercise", "hang"} or (previous and previous.status not in TERMINAL)):
+                    if ended and (command in {"record", "exercise", "hang", "voice_final"} or (previous and previous.status not in TERMINAL)):
                         with self._request_lock:
                             self._task_reserved = False
         except (sqlite3.Error, OSError, RuntimeError) as exc:

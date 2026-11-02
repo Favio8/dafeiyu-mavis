@@ -16,6 +16,8 @@ from .policy import PolicyDenied, digest
 from .system_backend import RegisteredSystemBackend
 from .windows_observer import observe_window
 
+INPUT_TAG = 0x4D41564953
+
 
 class _Keyboard(ctypes.Structure):
     _fields_ = [("vk", wintypes.WORD), ("scan", wintypes.WORD), ("flags", wintypes.DWORD),
@@ -41,17 +43,22 @@ class NotepadDraftBackend(RegisteredSystemBackend):
     No file save, clipboard, shortcut, arbitrary click, drag or shell path exists.
     The expected text comes from the host-confirmed goal, not page/model content.
     """
-    def __init__(self, lease, hotkey, stop, target: Observation, text: str):
+    ALLOWED_APP = "notepad.exe"
+    MAX_TEXT = 16
+
+    def __init__(self, lease, hotkey, stop, target: Observation, text: str, *, sealing=False):
         super().__init__(lease, hotkey, stop)
-        if target.app != "notepad.exe" or target.integrity != "medium" or target.own_ui:
+        if target.app != self.ALLOWED_APP or target.integrity != "medium" or target.own_ui:
             raise PolicyDenied("NOT_A_SAFE_NOTEPAD")
-        if not text or len(text) > 16 or any(ord(c) < 32 or ord(c) > 0xFFFF for c in text):
+        if not text or len(text) > self.MAX_TEXT or any(ord(c) < 32 or ord(c) > 0xFFFF for c in text):
             raise PolicyDenied("PILOT_TEXT_OUT_OF_RANGE")
+        if not sealing and (not target.control_id or not target.document_digest):
+            raise PolicyDenied("DRAFT_NOT_SEALED")
         import comtypes.client
         self.types = comtypes.client.GetModule("UIAutomationCore.dll")
         self.uia = comtypes.client.CreateObject("{ff48dba4-60ef-4201-aa87-54103eef594e}", interface=self.types.IUIAutomation)
         self.target, self.goal_text, self.prefix = target, text, ""
-        self.editor_id = None
+        self.editor_id = target.control_id or None
         self.user = ctypes.WinDLL("user32", use_last_error=True)
         self.user.SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(_Input), ctypes.c_int]
         self.user.SendInput.restype = wintypes.UINT
@@ -70,20 +77,21 @@ class NotepadDraftBackend(RegisteredSystemBackend):
             element = elements.GetElement(index)
             if element.CurrentIsOffscreen or element.CurrentIsPassword or not element.CurrentIsEnabled:
                 continue
-            if element.CurrentControlType == 50030 or (element.CurrentClassName == "Edit" and element.CurrentAutomationId == "15"):
+            if self._is_editor(element):
                 candidates.append(element)
         if len(candidates) != 1 or candidates[0].CurrentProcessId != self.target.pid:
             raise PolicyDenied("EDITOR_NOT_UNIQUE")
         return candidates[0]
+
+    def _is_editor(self, element):
+        return element.CurrentControlType == 50030 or (element.CurrentControlType == 50004 and element.CurrentClassName == "Edit" and element.CurrentAutomationId == "15")
 
     def _focused_editor(self):
         import win32gui
         if win32gui.GetForegroundWindow() != self.target.hwnd:
             raise PolicyDenied("FOCUS_CHANGED")
         element = self.uia.GetFocusedElement()
-        document = element.CurrentControlType == 50030
-        classic_edit = element.CurrentControlType == 50004 and element.CurrentClassName == "Edit" and element.CurrentAutomationId == "15"
-        if element.CurrentProcessId != self.target.pid or not (document or classic_edit):
+        if element.CurrentProcessId != self.target.pid or not self._is_editor(element):
             raise PolicyDenied("NOT_FOCUSED_EDITOR")
         if element.CurrentIsPassword or not element.CurrentIsEnabled or element.CurrentIsOffscreen:
             raise PolicyDenied("EDITOR_UNAVAILABLE")
@@ -102,24 +110,46 @@ class NotepadDraftBackend(RegisteredSystemBackend):
     def read_text(self) -> str:
         """Independent UIA document read, limited to this bound focused draft."""
         from comtypes import COMError
+        import win32gui
         try:
+            if self.stop.is_set():
+                raise PolicyDenied("STOPPED")
+            before = observe_window(self.target.hwnd)
+            if not self.target.identity_digest or before.identity_digest != self.target.identity_digest or before.integrity!="medium" or before.own_ui:
+                raise PolicyDenied("WINDOW_REPLACED")
+            title = win32gui.GetWindowText(self.target.hwnd).removeprefix("*")
+            title_digest = digest(title)
+            if self.target.document_digest and title_digest != self.target.document_digest:
+                raise PolicyDenied("DOCUMENT_REPLACED")
             element = self._editor()
             runtime_id = ":".join(str(x) for x in element.GetRuntimeId())
             if self.editor_id is not None and runtime_id != self.editor_id:
                 raise PolicyDenied("EDITOR_REPLACED")
-            pattern = element.GetCurrentPattern(10014).QueryInterface(self.types.IUIAutomationTextPattern)
-            value = pattern.DocumentRange.GetText(4097)
+            try:
+                pattern = element.GetCurrentPattern(10002).QueryInterface(self.types.IUIAutomationValuePattern)
+                value = pattern.CurrentValue
+            except COMError:
+                pattern = element.GetCurrentPattern(10014).QueryInterface(self.types.IUIAutomationTextPattern)
+                value = pattern.DocumentRange.GetText(4097)
             if len(value) > 4096:
                 raise PolicyDenied("NOT_A_NEW_DRAFT")
             # Pilot accepts a single line; UIA's document paragraph terminator is not user text.
-            return value.rstrip("\r\n")
+            after = observe_window(self.target.hwnd)
+            after_title = digest(win32gui.GetWindowText(self.target.hwnd).removeprefix("*"))
+            if self.stop.is_set():
+                raise PolicyDenied("STOPPED")
+            if after.context_digest != before.context_digest or after_title != title_digest:
+                raise PolicyDenied("CONTEXT_CHANGED_DURING_READ")
+            # Never erase user newlines to turn a mismatch into success. Providers
+            # with implicit terminators require separate calibration, not guessing.
+            return value
         except (COMError, AttributeError, TypeError):
             raise PolicyDenied("UIA_TEXT_UNAVAILABLE") from None
 
     def observe_draft(self, *, require_focus: bool = True) -> Observation:
         """Only a verified empty/expected-prefix draft acquires editable semantics."""
         root = observe_window(self.target.hwnd)
-        if root.pid != self.target.pid or root.app != "notepad.exe" or root.integrity != "medium":
+        if root.pid != self.target.pid or root.app != self.ALLOWED_APP or root.integrity != "medium" or not self.target.identity_digest or root.identity_digest != self.target.identity_digest:
             raise PolicyDenied("WINDOW_REPLACED")
         text = self.read_text()
         if text != self.prefix:
@@ -128,6 +158,7 @@ class NotepadDraftBackend(RegisteredSystemBackend):
         runtime_id = ":".join(str(x) for x in element.GetRuntimeId())
         self.editor_id = runtime_id
         return root.model_copy(update={"control_id":runtime_id, "editable_draft":True,
+            "document_digest":self.target.document_digest,
             "context_digest":digest({"window":root.context_digest,"editor":runtime_id,"text":text})})
 
     def execute(self, action, stop: threading.Event) -> str:
@@ -171,8 +202,15 @@ class NotepadDraftBackend(RegisteredSystemBackend):
         inputs = (_Input * 2)()
         for index, flags in enumerate((0x0004, 0x0006)):
             inputs[index].kind = 1
-            inputs[index].payload.keyboard = _Keyboard(0, ord(action.text), flags, 0, 0)
+            inputs[index].payload.keyboard = _Keyboard(0, ord(action.text), flags, 0, INPUT_TAG)
+        notice = getattr(self, "dispatch_notice", None)
+        if notice:
+            notice("begin", time.perf_counter(), 2)
+        if stop.is_set():
+            raise PolicyDenied("STOPPED")
         sent = self.user.SendInput(2, inputs, ctypes.sizeof(_Input))
+        if notice:
+            notice("returned", time.perf_counter(), sent)
         if sent != 2:
             if sent == 1:
                 self.user.SendInput(1, ctypes.byref(inputs[1]), ctypes.sizeof(_Input))

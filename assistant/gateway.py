@@ -89,6 +89,8 @@ class ToolGateway:
 
     def _validate(self, action):
         service, task = self.service, self.service.task
+        service.check_timeouts()
+        task = service.task
         if not task or task.status not in {S.EXECUTING, S.WAITING_APPROVAL} or service.stop.is_set():
             raise PolicyDenied("TASK_NOT_EXECUTABLE")
         if action.task_id != task.id or action.generation != task.generation:

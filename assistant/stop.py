@@ -7,6 +7,7 @@ import os
 import threading
 import time
 import re
+import subprocess
 
 
 def shortcut_key(shortcut: str) -> int:
@@ -24,11 +25,13 @@ class StopController:
         self._workers = []
         self._lock = threading.Lock()
         self.last_stop_ms: float | None = None
+        self.tripped_mono: float | None = None
+        self.termination_errors = []
 
     def own(self, worker) -> None:
         """Register a supervisor before its process starts; late registration fails closed."""
         with self._lock:
-            self._workers = [w for w in self._workers if w.process is None or w.process.poll() is None]
+            self._workers = [w for w in self._workers if (w.process is None and not getattr(w, "intentional", False)) or w.process is not None and not w.actual_exited()]
             self._workers.append(worker)
             if self.event.is_set():
                 worker.terminate()
@@ -36,19 +39,31 @@ class StopController:
     def trip(self) -> None:
         """Called directly from UI or hotkey thread; does not wait for controller/LLM work."""
         start = time.perf_counter()
+        if self.tripped_mono is None:
+            self.tripped_mono = time.monotonic()
         self.event.set()
         with self._lock:
             workers = tuple(self._workers)
         for worker in workers:
-            worker.terminate()
-        self.last_stop_ms = (time.perf_counter() - start) * 1000
+            signal = getattr(worker, "signal_stop", None)
+            if callable(signal):
+                signal()
+        for worker in workers:
+            try:
+                worker.terminate()
+            except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
+                self.termination_errors.append(type(exc).__name__)
+        self.last_stop_ms = max(self.last_stop_ms or 0, (time.perf_counter() - start) * 1000)
 
     def reset(self) -> None:
         """Explicit reset for a new task only, after all owned processes have exited."""
         with self._lock:
-            if any(w.process is not None and w.process.poll() is None for w in self._workers):
+            if any(w.process is not None and not w.actual_exited() for w in self._workers):
                 raise RuntimeError("worker still alive")
             self.event.clear()
+            self.tripped_mono = None
+            self.last_stop_ms = None
+            self.termination_errors.clear()
 
 
 class EmergencyHotkey:
@@ -64,6 +79,8 @@ class EmergencyHotkey:
         self.physical_seen = False
         self.error: str | None = None
         self.thread_id = 0
+        self.received_mono = None
+        self.received_perf = None
         self.ready = threading.Event()
         self.thread: threading.Thread | None = None
 
@@ -100,6 +117,8 @@ class EmergencyHotkey:
                         self.stop.trip()
                     break
                 if message.message == 0x0312 and message.wParam == self.HOTKEY_ID:
+                    self.received_mono = time.monotonic()
+                    self.received_perf = time.perf_counter()
                     self.physical_seen = True
                     self._trigger()
         finally:

@@ -2,6 +2,15 @@
 import numpy as np
 
 
+def choose_input(devices, selected_id, default_device):
+    if not devices:
+        raise ValueError("MICROPHONE_UNAVAILABLE")
+    selected = next((d for d in devices if bytes(d.id()).hex() == selected_id), None) if selected_id else default_device()
+    if selected is None or selected.isNull():
+        raise ValueError("MICROPHONE_UNAVAILABLE")
+    return selected
+
+
 class PCMConverter:
     def __init__(self, rate: int, channels: int, kind: str):
         self.rate, self.channels, self.kind = rate, channels, kind

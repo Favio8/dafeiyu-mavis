@@ -12,6 +12,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from .actions import Click, CreateFile, FixtureAction, FocusWindow, FocusControl, LaunchApp, OpenURL, Scroll, Shortcut, TypeText
 from .contracts import Observation
+from .privacy import redact
 
 
 class PolicyDenied(ValueError):
@@ -36,6 +37,8 @@ def digest(value) -> str:
 
 def normalize_url(raw: str) -> str:
     """Accept only explicit HTTPS URLs without credentials, ambiguous escapes or ports."""
+    if redact(raw) != raw:
+        raise PolicyDenied("SENSITIVE_URL")
     if any(ord(c) < 33 for c in raw) or "\\" in raw or re.search(r"%(?:0[0-9a-f]|1[0-9a-f]|7f)", raw, re.I):
         raise PolicyDenied("INVALID_URL")
     try:
@@ -127,11 +130,15 @@ class Policy:
                 raise PolicyDenied("DOMAIN_NOT_ALLOWED")
             return action.model_copy(update={"url": url}), "R0"
         if isinstance(action, CreateFile):
+            if redact(action.content) != action.content:
+                raise PolicyDenied("SENSITIVE_CONTENT")
             path = new_file_path(action.path, self.scope.folders)
             return action.model_copy(update={"path": str(path)}), "R1"
         if observation.domain is not None and observation.domain not in self.scope.domains:
             raise PolicyDenied("DOMAIN_NOT_ALLOWED")
         if isinstance(action, TypeText):
+            if redact(action.text) != action.text:
+                raise PolicyDenied("SENSITIVE_CONTENT")
             if not observation.editable_draft or action.control_id != observation.control_id:
                 raise PolicyDenied("NOT_TASK_DRAFT")
             # No line breaks, tabs or key syntax can become implicit submissions.

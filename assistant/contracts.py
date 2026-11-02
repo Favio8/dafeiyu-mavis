@@ -135,6 +135,8 @@ class Observation(Record):
     control_id: str = Field(default="", max_length=256)
     bounds: tuple[int, int, int, int] = (0, 0, 0, 0)
     dpi: int = Field(default=96, ge=48, le=768)
+    identity_digest: str = Field(default="", max_length=64)
+    document_digest: str = Field(default="", max_length=64)
 
 
 class Step(Record):

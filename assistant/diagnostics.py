@@ -4,6 +4,7 @@ import platform
 from pathlib import Path
 import zipfile
 import json
+import re
 
 from .history import export_redact
 
@@ -18,6 +19,8 @@ def preview(store, settings, *, provider_checks, credential_state, last_error, r
             versions[name] = "not installed"
     from .contracts import utc_now
     last_error = last_error or next((task.error_code for task in store.tasks(limit=20) if task.error_code), None)
+    if last_error and not re.fullmatch(r"[A-Z][A-Z0-9_]{1,100}", last_error):
+        last_error = "LOCAL_ERROR_DETAILS_OMITTED"
     return export_redact({"application": "DaFeiYu Mavis", "version": __version__, "generated_at": utc_now().isoformat(),
         "upstream_commit": "34d810b1eadd98d00e7cb9b3b51428a45b5bf03e",
         "system": {"os": platform.system(), "release": platform.release(), "architecture": platform.machine(), "python": platform.python_version()},

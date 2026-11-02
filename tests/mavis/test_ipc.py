@@ -52,6 +52,7 @@ def test_watchdog_kills_hung_worker_without_waiting_for_reply(attempt):
         actual_worker = psutil.Process(worker.peer_pid)
         stop.trip()
         actual_worker.wait(timeout=1)
+        assert worker.actual_exited()
         assert stop.event.is_set() and worker.process.poll() is not None
         assert stop.last_stop_ms < 1000
     finally:

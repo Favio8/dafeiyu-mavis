@@ -242,6 +242,11 @@ class HistoryPanel(QWidget):
                 self.history.setCurrentItem(item)
         self.history.blockSignals(False)
         self.counter.setText(f"{total} 条匹配任务 · 第 {self.page+1} 页 · 每页 50 条" if total else "当前筛选条件没有匹配任务。" if self.keyword.text().strip() or self.status.currentData() or self.source.currentData() else "当前时间范围尚无任务，完成一次指令后会出现在这里。")
+        stats=result["statistics"]
+        rate=f"{stats['rate']*100:.1f}%" if stats["rate"] is not None else "—"
+        self.counter.setText(self.counter.text()+f"\n已结束 {stats['ended']} · 验证成功 {stats['verified_succeeded']} · 成功率 {rate}")
+        if stats["unverified_success_markers"]:
+            self.counter.setText(self.counter.text()+" · 存在缺少验证的成功标记，请检查详情")
         self.previous.setEnabled(self.page>0)
         self.next.setEnabled((self.page+1)*50 < total)
         if selected not in self.rows:

@@ -182,10 +182,13 @@ class TaskService:
 
     def finish(self, results: list[Verification]) -> None:
         """Set outcome from host oracle results, never from tool-ok or model prose."""
+        self.check_timeouts()
         if self.task is None or self.task.status not in {S.EXECUTING, S.VERIFYING}:
             raise InvalidTransition("not ready to verify")
         task = self.task
         goal_ids = {goal.id for goal in task.goals}
+        methods = {"window": "window", "uia": "uia", "url": "url", "file_content": "file_content", "fixture.counter_equals": "fixture"}
+        goal_methods = {goal.id: methods[goal.predicate] for goal in task.goals}
         if len({r.goal_id for r in results}) != len(results) or any(
             r.task_id != task.id or r.generation != task.generation or r.goal_id not in goal_ids
             or (r.method == "fixture" and task.mode != "test") for r in results
@@ -196,8 +199,8 @@ class TaskService:
         self.persist(self.task, "verification.finished", "后置检查", verifications=tuple(results))
         required = {goal.id for goal in task.goals if goal.required}
         passed = {r.goal_id for r in results if r.result == "passed" and r.evidence
-                  and r.strength == "deterministic" and r.method != "manual"}
-        failed = {r.goal_id for r in results if r.result == "failed"}
+                  and r.evidence.strip() and r.strength == "deterministic" and r.method == goal_methods[r.goal_id]}
+        failed = {r.goal_id for r in results if r.result == "failed" and r.method == goal_methods[r.goal_id]}
         if required and required <= passed:
             state, verdict = S.SUCCEEDED, "passed"
         elif required & passed:

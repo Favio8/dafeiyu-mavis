@@ -14,17 +14,16 @@ def test_successful_launch_requires_an_observed_window(tmp_path, monkeypatch):
     from assistant import native_tasks
     import win32gui
     windows = []
-    observed = Observation(captured_mono=time.monotonic(),context_digest="a"*64,hwnd=11,pid=9999,app="notepad.exe",integrity="medium")
-    class Lease:
-        def acquire(self): return True
-        def close(self): pass
+    observed = Observation(captured_mono=time.monotonic(),context_digest="a"*64,identity_digest="b"*64,hwnd=11,pid=9999,app="notepad.exe",integrity="medium")
     class Backend(RegisteredSystemBackend):
         def __init__(self,*args): pass
+        def open(self, *args, **kwargs): pass
+        def close(self): pass
+        def seal(self, target): return target
         def execute(self, action, stop):
             windows.append(observed)
             return "OS fixture launch"
-    monkeypatch.setattr(native_tasks,"DesktopLease",Lease)
-    monkeypatch.setattr(native_tasks,"RegisteredSystemBackend",Backend)
+    monkeypatch.setattr(native_tasks,"NativeSession",Backend)
     monkeypatch.setattr(native_tasks,"notepad_windows",lambda:list(windows))
     monkeypatch.setattr(native_tasks,"observe_window",lambda hwnd:observed)
     monkeypatch.setattr(win32gui,"GetForegroundWindow",lambda:11)

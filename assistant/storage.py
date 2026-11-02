@@ -198,8 +198,13 @@ class Store:
             values.extend([query.keyword]*4)
         where = " AND ".join(clauses)
         count = self.db.execute("SELECT count(*) FROM tasks WHERE " + where, values).fetchone()[0]
+        statuses = dict(self.db.execute("SELECT status,count(*) FROM tasks WHERE "+where+" GROUP BY status",values))
+        ended = sum(number for status,number in statuses.items() if status in {state.value for state in TERMINAL})
+        verified = self.db.execute("SELECT count(*) FROM tasks WHERE "+where+" AND status='SUCCEEDED' AND json_extract(data,'$.verification_status')='passed'",values).fetchone()[0]
+        stats = {"ended":ended,"verified_succeeded":verified,"rate":verified/ended if ended else None,
+                 "unverified_success_markers":statuses.get("SUCCEEDED",0)-verified,"by_status":statuses}
         rows = self.db.execute("SELECT data FROM tasks WHERE " + where + " ORDER BY created DESC, id DESC LIMIT 50 OFFSET ?", [*values, query.page*50])
-        return {"kind": "task", "rows": [Task.model_validate_json(row[0]).model_dump(mode="json") for row in rows], "total": count,
+        return {"kind": "task", "rows": [Task.model_validate_json(row[0]).model_dump(mode="json") for row in rows], "total": count,"statistics":stats,
                 "page": query.page, "page_size": 50, "request": query.request}
 
     def details(self, task_id: UUID) -> dict:

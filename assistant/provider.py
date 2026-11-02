@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import threading
+import random
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
@@ -115,8 +116,10 @@ class DeepSeekProvider:
             raise
         except asyncio.TimeoutError:
             raise ProviderError("MODEL_TIMEOUT") from None
+        except aiohttp.ClientConnectionError:
+            raise ProviderError("NETWORK_UNAVAILABLE") from None
         except (aiohttp.ClientError, UnicodeError, ValueError):
-            raise ProviderError("NETWORK_OR_JSON_ERROR") from None
+            raise ProviderError("INVALID_PROVIDER_RESPONSE") from None
 
     async def complete(self, messages: list[dict], tools: list[dict], stop: threading.Event,
                        *, tool_choice: Any = "auto") -> Completion:
@@ -143,9 +146,9 @@ class DeepSeekProvider:
                     raise ProviderError("CANCELLED")
                 return parse_completion(await request)
             except ProviderError as exc:
-                if str(exc) not in {"RATE_LIMITED", "SERVER_ERROR"} or attempt >= self.settings.retries:
+                if str(exc) not in {"RATE_LIMITED", "SERVER_ERROR", "NETWORK_UNAVAILABLE"} or attempt >= self.settings.retries:
                     raise
-                until = min(deadline, asyncio.get_running_loop().time() + .25 * 2**attempt)
+                until = min(deadline, asyncio.get_running_loop().time() + .25 * 2**attempt + random.uniform(0,.10))
                 while asyncio.get_running_loop().time() < until:
                     if stop.is_set():
                         raise ProviderError("CANCELLED")

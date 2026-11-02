@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import time
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -18,12 +19,15 @@ class Expected:
     value: str
     hwnd: int | None = None
     pid: int | None = None
+    identity_digest: str | None = None
 
 
 def verify_window(task: Task, expected: Expected, actual: Observation | None) -> Verification:
     """Require a specific process/window and normal integrity, not an API return code."""
     matched = actual is not None and actual.app.casefold() == expected.value.casefold() and actual.integrity == "medium" and not actual.own_ui
+    matched = matched and 0 <= time.monotonic()-actual.captured_mono <= task.budget.observation_ms/1000
     matched = matched and (expected.pid is None or actual.pid == expected.pid) and (expected.hwnd is None or actual.hwnd == expected.hwnd)
+    matched = matched and (expected.identity_digest is None or actual.identity_digest == expected.identity_digest)
     return Verification(task_id=task.id, generation=task.generation, goal_id=expected.goal_id, method="window",
         result="passed" if matched else "unknown" if actual is None else "failed",
         evidence=f"window identity {'matched' if matched else 'not confirmed'}")

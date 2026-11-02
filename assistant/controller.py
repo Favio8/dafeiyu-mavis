@@ -169,25 +169,42 @@ class Controller(threading.Thread):
             "data_dir": str(self.data_dir), "last_error": self.last_error or next((t.error_code for t in recent if t.error_code), None)})
 
     def _probe_model(self, kind: str) -> None:
-        import asyncio
         from .credentials import Credentials, CredentialUnavailable
-        from .provider import DeepSeekProvider, ProviderError
-        from .model_diagnostics import probe
+        from .provider import ProviderError
         if self.service.task and self.service.task.status not in TERMINAL:
             raise Busy("请先结束当前任务再测试模型")
         if self.stop.event.is_set():
             raise InvalidTransition("请先明确复位急停")
         self.provider_checks[kind] = "测试中"
         self._snapshot()
+        worker=None
         try:
-            secret = Credentials().read("deepseek/default")
-            if not secret:
+            if not Credentials().read("deepseek/default"):
                 raise ProviderError("CREDENTIAL_MISSING")
-            client = DeepSeekProvider(self.settings.provider, secret)
-            result = asyncio.run(probe(client, kind, self.stop.event))
-            self.provider_checks[kind] = "通过" if result["passed"] else "未通过"
+            class ProbeWorker(WorkerSupervisor):
+                MODULE="assistant.model_probe_worker"
+                HOST_KINDS={"hello","stop","model_probe"}
+                WORKER_KINDS={"ready","model_result"}
+            completed=threading.Event();received=[]
+            def reply(message):
+                if message.kind=="model_result":
+                    received.append(json.loads(message.payload));completed.set()
+            worker=ProbeWorker(self.stop.event,on_message=reply,on_failure=self.stop.trip)
+            self.stop.own(worker);worker.start()
+            worker.send("model_probe",json.dumps({"kind":kind,"settings":self.settings.provider.model_dump(mode="json")}))
+            deadline=time.monotonic()+self.settings.provider.timeout_s+5
+            while not completed.wait(.025):
+                if self.stop.event.is_set():raise ProviderError("CANCELLED")
+                if worker.ended.is_set() or time.monotonic()>=deadline:
+                    raise ProviderError("MODEL_TIMEOUT")
+            result=received[0]
+            if self.stop.event.is_set():
+                raise ProviderError("CANCELLED")
+            self.provider_checks[kind] = "通过" if result["passed"] else result.get("error","未通过")
         except (ProviderError, CredentialUnavailable) as exc:
             self.provider_checks[kind] = str(exc)
+        finally:
+            if worker:worker.close()
         from .contracts import utc_now
         self._save_settings({"provider_checks": dict(self.provider_checks), "provider_tested_at": utc_now().isoformat()})
 
@@ -306,7 +323,7 @@ class Controller(threading.Thread):
         elif command in {"exercise", "hang"}:
             task = self._new("本地审批演练" if command == "exercise" else "挂起 worker 急停演练", fixture=True)
             self.service.transition(S.EXECUTING)
-            self.worker = WorkerSupervisor(self.stop.event, test_mode=True)
+            self.worker = WorkerSupervisor(self.stop.event, test_mode=True, on_failure=self.stop.trip)
             self.stop.own(self.worker)
             try:
                 self.worker.start(task.id, task.generation)

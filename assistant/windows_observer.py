@@ -7,9 +7,22 @@ import os
 from pathlib import Path
 import threading
 import time
+from functools import lru_cache
 
 from .contracts import Observation
 from .policy import PolicyDenied, digest
+
+
+@lru_cache(maxsize=1)
+def _caller_sid():
+    import win32api
+    import win32con
+    import win32security
+    token=win32security.OpenProcessToken(win32api.GetCurrentProcess(),win32con.TOKEN_QUERY)
+    try:
+        return win32security.ConvertSidToStringSid(win32security.GetTokenInformation(token,win32security.TokenUser)[0])
+    finally:
+        token.Close()
 
 
 def input_desktop_is_default() -> bool:
@@ -57,13 +70,23 @@ def observe_window(hwnd: int) -> Observation:
             try:
                 sid, _attributes = win32security.GetTokenInformation(token, win32security.TokenIntegrityLevel)
                 rid = sid.GetSubAuthority(sid.GetSubAuthorityCount() - 1)
+                owner_sid = win32security.ConvertSidToStringSid(win32security.GetTokenInformation(token,win32security.TokenUser)[0])
             finally:
                 token.Close()
         finally:
             handle.Close()
         integrity = "medium" if 0x2000 <= rid < 0x3000 else "high" if rid >= 0x3000 else "unknown"
-        bounds = tuple(win32gui.GetWindowRect(hwnd))
+        if owner_sid != _caller_sid():
+            raise PolicyDenied("WINDOW_DIFFERENT_USER")
         user = ctypes.WinDLL("user32", use_last_error=True)
+        user.SetThreadDpiAwarenessContext.argtypes = [wintypes.HANDLE]
+        user.SetThreadDpiAwarenessContext.restype = wintypes.HANDLE
+        previous_dpi = user.SetThreadDpiAwarenessContext(wintypes.HANDLE(-4))
+        try:
+            bounds = tuple(win32gui.GetWindowRect(hwnd))
+        finally:
+            if previous_dpi:
+                user.SetThreadDpiAwarenessContext(previous_dpi)
         user.GetDpiForWindow.argtypes = [wintypes.HWND]
         user.GetDpiForWindow.restype = wintypes.UINT
         dpi = user.GetDpiForWindow(hwnd)
@@ -72,8 +95,9 @@ def observe_window(hwnd: int) -> Observation:
             raise PolicyDenied("WINDOW_DPI_UNAVAILABLE")
         context = {"hwnd": hwnd, "pid": pid, "birth": born, "exe": executable.casefold(),
                    "bounds": bounds, "dpi": dpi, "foreground": foreground, "integrity": integrity}
+        identity = digest({"hwnd": hwnd, "pid": pid, "birth": born, "exe": executable.casefold(), "class": win32gui.GetClassName(hwnd), "owner":owner_sid})
         return Observation(captured_mono=time.monotonic(), context_digest=digest(context), hwnd=hwnd, pid=pid,
-                           app=Path(executable).name.lower(), integrity=integrity, own_ui=pid == os.getpid(), bounds=bounds, dpi=dpi)
+                           app=Path(executable).name.lower(), integrity=integrity, own_ui=pid == os.getpid(), bounds=bounds, dpi=dpi, identity_digest=identity)
     except (psutil.Error, OSError, win32api.error):
         raise PolicyDenied("WINDOW_IDENTITY_UNAVAILABLE") from None
 

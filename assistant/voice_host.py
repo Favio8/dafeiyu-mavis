@@ -43,6 +43,7 @@ class SessionEvents(QAbstractNativeEventFilter):
     def nativeEventFilter(self, event_type, message):  # noqa: N802
         msg = wintypes.MSG.from_address(int(message))
         if (msg.message == 0x2B1 and msg.wParam == 7) or (msg.message == 0x218 and msg.wParam == 4):
+            self.host.stop.trip()
             self.host.suspend("会话锁定或休眠，麦克风已关闭")
         return False, 0
 
@@ -122,7 +123,7 @@ class VoiceHost(QObject):
             return
         if self.process:
             self.process.close()
-        self.process = VoiceProcess(self.stop.event, on_message=self._incoming.emit)
+        self.process = VoiceProcess(self.stop.event, on_message=self._incoming.emit, on_failure=self.stop.trip)
         self.stop.own(self.process)
         self.process.start()
         self.process.send("voice_config", json.dumps({**self.config, "epoch": self.epoch}))

@@ -15,7 +15,7 @@ from assistant.storage import Store
 
 def executing(tmp_path, goals=None):
     service = TaskService(Store(tmp_path / "state.db"))
-    service.create("测试", mode="test", goals=goals)
+    service.create("测试", mode="test", goals=goals or (Goal(predicate="fixture.counter_equals"),))
     service.transition(S.INTERPRETING)
     service.transition(S.EXECUTING)
     return service
@@ -62,7 +62,7 @@ def test_verification_strength_and_truth(tmp_path, result, strength, expected):
 
 
 def test_missing_second_goal_is_partial(tmp_path):
-    service = executing(tmp_path, (Goal(id="first"), Goal(id="second")))
+    service = executing(tmp_path, (Goal(id="first", predicate="fixture.counter_equals"), Goal(id="second", predicate="fixture.counter_equals")))
     task = service.task
     service.finish([Verification(task_id=task.id, generation=task.generation, goal_id="first", method="fixture", result="passed", evidence="fixture")])
     assert service.task.status == S.PARTIAL

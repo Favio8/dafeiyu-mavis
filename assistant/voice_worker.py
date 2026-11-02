@@ -18,7 +18,7 @@ def main():
     from PySide6.QtMultimedia import QAudioSource, QAudioFormat, QMediaDevices, QAudio
     import numpy as np
     import pythoncom
-    from .voice_audio import PCMConverter
+    from .voice_audio import PCMConverter, choose_input
     from .voice_tts import LocalSpeech, voices
     from .voice_engine import VoiceEngine
     pythoncom.CoInitialize()
@@ -74,9 +74,7 @@ def main():
         close_audio()
         available = QMediaDevices.audioInputs()
         device_id = config.get("device", "")
-        device = next((d for d in available if bytes(d.id()).hex() == device_id), None) if device_id else QMediaDevices.defaultAudioInput()
-        if device is None or device.isNull():
-            raise ValueError("MICROPHONE_UNAVAILABLE")
+        device = choose_input(available, device_id, QMediaDevices.defaultAudioInput)
         if not engine:
             emit("state", {"state": "LOADING"})
             engine = VoiceEngine(Path(config["root"]), emit, word=config["word"], sensitivity=config["sensitivity"])

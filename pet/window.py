@@ -105,11 +105,12 @@ from .platform_win import (
     _set_windows_click_through as _set_windows_click_through,
     _set_windows_no_activate as _set_windows_no_activate,
     WindowsPerPixelInputController as WindowsPerPixelInputController,
-    _fullscreen_geometry_hit as _fullscreen_geometry_hit,
-    _fs_user_busy_state as _fs_user_busy_state,
-    _fg_fullscreen_probe as _fg_fullscreen_probe,
-    _fg_fullscreen_win32 as _fg_fullscreen_win32,
 )
+
+_fullscreen_geometry_hit = platform_win._fullscreen_geometry_hit
+_fs_user_busy_state = platform_win._fs_user_busy_state
+_fg_fullscreen_probe = platform_win._fg_fullscreen_probe
+_fg_fullscreen_win32 = platform_win._fg_fullscreen_win32
 
 # 后台播放音乐时自动播放的唱歌/哼歌动画
 SING_ANIM = '悠闲哼歌'

@@ -48,9 +48,10 @@ def test_real_approval_history_navigation_and_stop(tmp_path):
         QTest.mouseClick(window.allow, Qt.MouseButton.LeftButton)
         until(lambda: window.latest["task"]["status"] == "SUCCEEDED")
         window.nav.setCurrentRow(1)
+        until(lambda: window.history.topLevelItemCount() > 0)
         window.history.setCurrentItem(window.history.topLevelItem(0))
-        until(lambda: "verification.finished" in window.detail.toPlainText())
-        assert "consumed" in window.detail.toPlainText()
+        until(lambda: "验证完成" in window.detail.toPlainText())
+        assert "已消耗" in window.detail.toPlainText()
         assert window.history.currentItem().text(2) == "文字"
         before_refresh = window.latest
         controller.submit("refresh")

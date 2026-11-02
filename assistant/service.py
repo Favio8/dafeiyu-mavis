@@ -4,10 +4,11 @@ from __future__ import annotations
 import sqlite3
 import threading
 import time
+import json
 from collections.abc import Callable
 from uuid import UUID
 
-from .contracts import Goal, Observation, Task, TaskStatus as S, TERMINAL, WAITING, Verification, utc_now
+from .contracts import Goal, Observation, Task, TaskStatus as S, TERMINAL, WAITING, Verification, utc_now, ProviderSnapshot
 from .privacy import redact
 from .storage import Store
 
@@ -53,6 +54,8 @@ class TaskService:
         self._wait_since = self._last
         self._generation = 0
         self.pause_requested = threading.Event()
+        self.provider = ProviderSnapshot()
+        self.configuration = {}
 
     def persist(self, task: Task, kind: str, payload: str = "", **records):
         """Commit a transition and publish it. Storage errors revoke execution immediately."""
@@ -71,7 +74,7 @@ class TaskService:
                 continue
         return event
 
-    def create(self, text: str, *, source: str = "text", mode: str = "live", goals: tuple[Goal, ...] | None = None, original_text: str | None = None) -> Task:
+    def create(self, text: str, *, source: str = "text", mode: str = "live", goals: tuple[Goal, ...] | None = None, original_text: str | None = None, parent_task_id=None) -> Task:
         """Start one task from a final command; reject empty text or an occupied desktop."""
         if self.task is not None and self.task.status not in TERMINAL:
             raise Busy("已有活动任务，请先停止或等待结束")
@@ -82,8 +85,10 @@ class TaskService:
         created = self.clock()
         clean = redact(text.strip())
         task = Task(original_text=redact(original_text.strip()) if original_text is not None else clean, final_text=clean, title=clean[:80], source=source, mode=mode,
-                    generation=self._generation, goals=goals if goals is not None else (Goal(),))
+                    generation=self._generation, provider=self.provider, parent_task_id=parent_task_id, goals=goals if goals is not None else (Goal(),))
         self.persist(task, "task.created", clean)
+        if self.configuration:
+            self.persist(task, "task.configuration", json.dumps(self.configuration, ensure_ascii=False))
         self._created = self._last = self._wait_since = created
         self.observation = None
         return task

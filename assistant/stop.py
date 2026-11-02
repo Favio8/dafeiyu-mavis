@@ -6,6 +6,15 @@ from ctypes import wintypes
 import os
 import threading
 import time
+import re
+
+
+def shortcut_key(shortcut: str) -> int:
+    match = re.fullmatch(r"Ctrl\+Alt\+(F(?:[1-9]|1[0-2])|[A-Z]|Space)", shortcut)
+    if not match:
+        raise ValueError("快捷键格式为 Ctrl+Alt+F1～F12、字母或 Space")
+    key = match[1]
+    return 0x20 if key == "Space" else 0x6F+int(key[1:]) if key.startswith("F") and len(key)>1 else ord(key)
 
 
 class StopController:
@@ -47,8 +56,10 @@ class EmergencyHotkey:
     HOTKEY_ID = 0x4D56
     VKEY = 0x7B
 
-    def __init__(self, stop: StopController):
+    def __init__(self, stop: StopController, shortcut=None):
         self.stop = stop
+        self.vkey = shortcut_key(shortcut) if shortcut else self.VKEY
+        self.shortcut = shortcut or ("Ctrl+Alt+Space" if self.VKEY == 0x20 else "Ctrl+Alt+F12")
         self.registered = False
         self.physical_seen = False
         self.error: str | None = None
@@ -73,7 +84,7 @@ class EmergencyHotkey:
         kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
         self.thread_id = kernel32.GetCurrentThreadId()
         user32.RegisterHotKey.argtypes = [wintypes.HWND, ctypes.c_int, wintypes.UINT, wintypes.UINT]
-        self.registered = bool(user32.RegisterHotKey(None, self.HOTKEY_ID, 0x4003, self.VKEY))
+        self.registered = bool(user32.RegisterHotKey(None, self.HOTKEY_ID, 0x4003, self.vkey))
         if not self.registered:
             self.error = f"HOTKEY_UNAVAILABLE_{ctypes.get_last_error()}"
         self.ready.set()

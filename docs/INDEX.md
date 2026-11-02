@@ -2,6 +2,8 @@
 
 ## DaFeiYu Mavis 增量基线（2026-11-02）
 
+M4控制中心：[实现、实际页面查看与统一验收清单](reports/M4_UI_ACCEPTANCE.md)。记录与页面来自真实事件/SQLite；本轮按用户要求未跑功能回归，DEV-032～038状态见[实施状态](IMPLEMENTATION_STATUS.md#m4-最新状态)。
+
 M3 语音入口：[实现、固定回放与真人验收步骤](reports/M3_VOICE_E2E.md)。本机无麦克风，真人连续说话、声学防自唤醒与设备释放仍待实测；DEV-024～031 的准确状态见 [IMPLEMENTATION_STATUS](IMPLEMENTATION_STATUS.md#m3-最新状态)。
 
 M2 最新入口：[受控实机报告与命令](reports/M2_DESKTOP_E2E.md)、[ADR-002 受限原生试验](adr/002-m2-controlled-pilot.md)。修改原生观察、授权、输入、模型协议或继续 DEV-015～023 前必读；完整 M2 尚未通过。
@@ -12,7 +14,7 @@ PR 报告存档：[PR-REPORT-MAVIS-M2-2026-11-02.md](PR-REPORT-MAVIS-M2-2026-11-
 
 | 文档 | 内容 | 何时必读 |
 |---|---|---|
-| [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | DEV-001～014 实际状态、证据与边界 | 继续实现 M2 前必读 |
+| [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | DEV-001～038 实际状态、证据与边界 | 继续开发与统一验收前必读 |
 | [UPSTREAM_BASELINE.md](UPSTREAM_BASELINE.md) | 固定 commit、依赖/许可与复用映射 | 同步上游或升级依赖前必读 |
 | [WINDOWS_USE_ADAPTER_AUDIT.md](WINDOWS_USE_ADAPTER_AUDIT.md) | 真实接口、隐式 shell/联网和逐动作拦截 | 接入任何 Windows-Use 代码前必读 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 现有进程/线程/许可/停止架构 | 改任务、IPC、UI 事件桥前必读 |

@@ -166,6 +166,90 @@ class Store:
         self._owner()
         return [VoiceAttempt.model_validate_json(row[0]) for row in self.db.execute("SELECT data FROM voice_attempts ORDER BY rowid DESC LIMIT 50")]
 
+    def history(self, query, mode: str) -> dict:
+        self._owner()
+        if query.kind == "voice":
+            clauses, values = ["1=1"], []
+            if query.days:
+                clauses.append("json_extract(data,'$.started_at')>=?")
+                values.append(query.cutoff())
+            if query.status:
+                clauses.append("json_extract(data,'$.result')=?")
+                values.append(str(query.status))
+            if query.keyword:
+                clauses.append("instr(lower(data),lower(?))>0")
+                values.append(query.keyword)
+            where = " AND ".join(clauses)
+            total = self.db.execute("SELECT count(*) FROM voice_attempts WHERE "+where, values).fetchone()[0]
+            rows = self.db.execute("SELECT data FROM voice_attempts WHERE "+where+" ORDER BY rowid DESC LIMIT 50 OFFSET ?", [*values, query.page*50])
+            return {"kind": "voice", "rows": [VoiceAttempt.model_validate_json(row[0]).model_dump(mode="json") for row in rows], "total": total, "page": query.page, "page_size": 50, "request": query.request}
+        clauses, values = ["mode=?"], [mode]
+        if query.days:
+            clauses.append("created>=?")
+            values.append(query.cutoff())
+        if query.status:
+            clauses.append("status=?")
+            values.append(query.status.value if isinstance(query.status, TaskStatus) else query.status)
+        if query.source:
+            clauses.append("json_extract(data,'$.source')=?")
+            values.append(query.source)
+        if query.keyword:
+            clauses.append("(instr(lower(data),lower(?))>0 OR id IN (SELECT task_id FROM events WHERE instr(lower(data),lower(?))>0) OR id IN (SELECT task_id FROM steps WHERE instr(lower(data),lower(?))>0) OR id IN (SELECT task_id FROM verifications WHERE instr(lower(data),lower(?))>0))")
+            values.extend([query.keyword]*4)
+        where = " AND ".join(clauses)
+        count = self.db.execute("SELECT count(*) FROM tasks WHERE " + where, values).fetchone()[0]
+        rows = self.db.execute("SELECT data FROM tasks WHERE " + where + " ORDER BY created DESC, id DESC LIMIT 50 OFFSET ?", [*values, query.page*50])
+        return {"kind": "task", "rows": [Task.model_validate_json(row[0]).model_dump(mode="json") for row in rows], "total": count,
+                "page": query.page, "page_size": 50, "request": query.request}
+
+    def details(self, task_id: UUID) -> dict:
+        from .contracts import Step
+        task = self.task(task_id)
+        if task is None:
+            raise ValueError("RECORD_NOT_FOUND")
+        steps = [Step.model_validate_json(row[0]).model_dump(mode="json") for row in self.db.execute("SELECT data FROM steps WHERE task_id=? ORDER BY seq", (str(task_id),))]
+        verifications = [Verification.model_validate_json(row[0]).model_dump(mode="json") for row in self.db.execute("SELECT data FROM verifications WHERE task_id=? ORDER BY rowid", (str(task_id),))]
+        return {"task": task.model_dump(mode="json"), "events": [e.model_dump(mode="json") for e in self.events(task_id)],
+                "steps": steps, "approvals": [a.model_dump(mode="json") for a in self.approvals(task_id)], "verifications": verifications}
+
+    def delete_record(self, record_id: UUID, *, kind="task"):
+        self._owner()
+        with self.db:
+            if kind == "voice":
+                linked = self.db.execute("SELECT task_id FROM voice_attempts WHERE id=?", (str(record_id),)).fetchone()
+                if linked and linked[0] and self.db.execute("SELECT active FROM tasks WHERE id=?", linked).fetchone()[0]:
+                    raise ValueError("ACTIVE_TASK_CANNOT_BE_DELETED")
+                self.db.execute("DELETE FROM voice_attempts WHERE id=?", (str(record_id),))
+                return
+            row = self.db.execute("SELECT active FROM tasks WHERE id=?", (str(record_id),)).fetchone()
+            if row and row[0]:
+                raise ValueError("ACTIVE_TASK_CANNOT_BE_DELETED")
+            self.db.execute("DELETE FROM voice_attempts WHERE task_id=?", (str(record_id),))
+            self.db.execute("DELETE FROM tasks WHERE id=?", (str(record_id),))
+
+    def clear_records(self) -> dict:
+        self._owner()
+        with self.db:
+            self.db.execute("DELETE FROM voice_attempts WHERE task_id IS NULL OR task_id IN (SELECT id FROM tasks WHERE active=0)")
+            removed = self.db.execute("DELETE FROM tasks WHERE active=0").rowcount
+            active = self.db.execute("SELECT count(*) FROM tasks WHERE active=1").fetchone()[0]
+        return {"deleted_tasks": removed, "preserved_active": active}
+
+    def retain_records(self, days: int):
+        from datetime import timedelta
+        before = (utc_now()-timedelta(days=days)).isoformat()
+        self._owner()
+        with self.db:
+            self.db.execute("DELETE FROM voice_attempts WHERE (task_id IS NULL OR task_id IN (SELECT id FROM tasks WHERE active=0)) AND json_extract(data,'$.started_at')<?", (before,))
+            self.db.execute("DELETE FROM voice_attempts WHERE task_id IN (SELECT id FROM tasks WHERE active=0 AND finished<?)", (before,))
+            self.db.execute("DELETE FROM tasks WHERE active=0 AND finished<?", (before,))
+
+    def counts(self) -> dict:
+        self._owner()
+        return {"tasks": self.db.execute("SELECT count(*) FROM tasks").fetchone()[0],
+                "active": self.db.execute("SELECT count(*) FROM tasks WHERE active=1").fetchone()[0],
+                "voice_attempts": self.db.execute("SELECT count(*) FROM voice_attempts").fetchone()[0]}
+
     def close(self) -> None:
         """Close the writer connection on its owning thread."""
         self._owner()

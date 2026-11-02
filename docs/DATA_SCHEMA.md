@@ -1,5 +1,7 @@
 # M1 数据与恢复
 
+**M4 增量：** SQLite版本仍为1，无结构迁移。既有表新增查询/删除接口，Task与VoiceAttempt独立筛选并50条分页；UI删除事务先清理关联语音尝试，再级联删除结束Task，拒绝删除活动Task。7/30/90天保留启动后及每小时调度，配置损坏时暂停自动清理。`assistant-settings.json`仅保存非秘密配置，新Task通过provider字段和`task.configuration`事件保留当时参数，`parent_task_id`关联显式重跑。CRUD与保留已实现，统一验收待做；下文保留M1历史快照。
+
 2026-11-02，schema_version/user_version = 1。代码 `assistant/contracts.py`、`storage.py`、`service.py`；参见 [架构](ARCHITECTURE.md)。
 
 | 表 | 主键 / 约束 | 内容 |

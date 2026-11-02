@@ -22,7 +22,7 @@ class NativeTasks:
         self.owned_draft = None
         self.gateway = None
 
-    def run(self, command: str, *, source="text", original_text=None) -> None:
+    def run(self, command: str, *, source="text", original_text=None, parent_task_id=None) -> None:
         """Execute only explicit launch / single-line input intents after local scope consent."""
         import comtypes
         from comtypes import COMError
@@ -31,7 +31,7 @@ class NativeTasks:
         text = command.removeprefix("输入：") if command.startswith("输入：") else None
         sensitive = redact(command) != command or any(word in command.lower() for word in ("密码", "验证码", "密钥", "password", "api_key"))
         task = self.service.create("敏感内容已省略" if sensitive else command, source=source,
-            original_text="敏感内容已省略" if sensitive else original_text, goals=(Goal(predicate="window" if is_launch else "uia"),))
+            original_text="敏感内容已省略" if sensitive else original_text, parent_task_id=parent_task_id, goals=(Goal(predicate="window" if is_launch else "uia"),))
         comtypes.CoInitialize()
         lease, watcher = None, None
         try:

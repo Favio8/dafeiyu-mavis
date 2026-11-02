@@ -88,6 +88,8 @@ uv pip sync --python .venv-audit/Scripts/python.exe requirements-audit.lock.txt
 
 ## M3 本地语音
 
+M4控制中心已接入数据库检索/分页、设置和数据导出；正常入口仍为 `python -m assistant`。隔离查看页面可运行 `.venv/Scripts/python.exe scripts/mavis_m4_preview.py`，不自动开麦或授权。最后统一验收步骤见 [M4_UI_ACCEPTANCE](reports/M4_UI_ACCEPTANCE.md)，本轮没有跑功能测试套件。
+
 应用内进入「语音与唤醒」，下载或导入固定模型，刷新输入设备，先使用默认的校准模式。麦克风初始关闭；校准不执行电脑任务。语音资源保存在 Mavis 数据目录 `voice/models/`，偏好在 `voice-preferences.json`，其中不保存监听或电脑操作授权。
 
 ```powershell

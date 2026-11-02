@@ -14,7 +14,8 @@ def test_bridge_queued_presentation_and_quit_filter(tmp_path, monkeypatch):
     from assistant import pet_bridge
     class NoNativeHotkey:
         registered, error = True, None
-        def __init__(self, stop):
+        shortcut = "Ctrl+Alt+F12"
+        def __init__(self, stop, shortcut=None):
             pass
         def start(self):
             return True

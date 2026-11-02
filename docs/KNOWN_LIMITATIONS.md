@@ -1,5 +1,7 @@
 # M0/M1 已知限制与进入 M2 的门槛
 
+**M3/M4 更新：** 本地KWS/VAD/ASR/TTS已实现，同一TaskService接入及固定回放见[M3](reports/M3_VOICE_E2E.md)。M4已接入真实数据库记录、设置和诊断导出，见[M4](reports/M4_UI_ACCEPTANCE.md)。用户当前无麦克风，并要求功能开发完成后统一验收，因此本轮没有运行测试套件；麦克风实测、M4功能/动画/DPI检查仍待做。网页/目录范围、视觉和通用澄清恢复仍依赖M2，不用界面空开关伪装支持。下文继续保留阶段历史限制。
+
 2026-11-02；以 [实施状态](IMPLEMENTATION_STATUS.md) 和 [验证报告](reports/M1_CORE_TESTS.md) 为准。
 
 **M2 更新：** 已完成 deepseek-flash 真实连接/工具探针、Windows session lease、原生只读观察、物理急停和受限 Notepad GUI 输入。默认关闭的控制中心授权可启用确切的 Notepad 指令，只有本次新开的空白草稿可以输入。完整 M2 仍未通过；[M2 报告](reports/M2_DESKTOP_E2E.md) 是当前增量真源。下列条目保留为 M0/M1 历史快照，已覆盖的部分不要重复当成“从未实现”，未覆盖门禁也不要因试验成功而删除。

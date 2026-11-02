@@ -43,7 +43,7 @@ def main() -> int:
     from pet.qt_plugin_sanitizer import sanitize_plugin_path
     sanitize_plugin_path()
     from PySide6.QtCore import QTimer
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication, QScrollArea
     from pet import app as pet_app
     from pet.multi_window_shared import presentation_targets
     import psutil
@@ -133,12 +133,14 @@ def main() -> int:
             window.resize(720, 540)
             phase[0] = 2
         elif phase[0] == 2:
+            for area in window.stack.widget(0).findChildren(QScrollArea):
+                area.ensureWidgetVisible(window.allow)
             window.grab().save(str(evidence / "approval-720.png"))
             report["checks"]["approval_button_reachable"] = window.rect().contains(window.allow.mapTo(window, window.allow.rect().center()))
             report["checks"]["stop_button_reachable"] = window.rect().contains(window.stop_button.mapTo(window, window.stop_button.rect().center()))
             window.allow.click()
             phase[0] = 3
-        elif phase[0] == 3 and task and task["status"] == "SUCCEEDED":
+        elif phase[0] == 3 and task and task["status"] == "SUCCEEDED" and window.history.topLevelItemCount():
             report["checks"]["fixture_verified"] = task["verification_status"] == "passed" and task["mode"] == "test"
             window.resize(1040, 720)
             window.nav.setCurrentRow(1)
@@ -146,7 +148,7 @@ def main() -> int:
             phase[0] = 4
         elif phase[0] == 4 and window.detail.toPlainText():
             window.grab().save(str(evidence / "history.png"))
-            report["checks"]["committed_history"] = "verification.finished" in window.detail.toPlainText()
+            report["checks"]["committed_history"] = "验证完成" in window.detail.toPlainText()
             window.nav.setCurrentRow(0)
             bridge.controller.submit("hang")
             phase[0] = 5

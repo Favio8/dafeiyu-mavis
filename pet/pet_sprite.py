@@ -171,6 +171,7 @@ class PetSprite(QObject):
         # 逐只显隐（M14 / PHASE4_DESIGN 4.1b）：False = 不绘制、不命中、不进
         # 位置 fanout（隐藏是"整只退出合成与交互面"，不是"变透明"）。默认 True。
         self._visible = True
+        self._assistant_suppressed = False
         # 播放节拍暂停（O3）：隐藏/挂起期间为 True——clip 的定时器停摆，当前
         # 帧/播放位置/在途帧全部原地保留，恢复时从暂停处续播（不重放）。
         self._clip_paused = False
@@ -179,7 +180,7 @@ class PetSprite(QObject):
     @property
     def visible(self) -> bool:
         """逐只可见性（默认 True）；隐藏 = 绘制/命中/位置 fanout 三处一起排除。"""
-        return self._visible
+        return self._visible and not self._assistant_suppressed
 
     @visible.setter
     def visible(self, value: bool) -> None:
@@ -197,6 +198,14 @@ class PetSprite(QObject):
         rect = self.paint_bounds()
         self._visible = visible
         self._notify_dirty(rect, rect)
+
+    def set_assistant_suppressed(self, suppressed: bool) -> None:
+        """Temporary presentation owner; preserve user visibility and clip state."""
+        suppressed = bool(suppressed)
+        if suppressed != self._assistant_suppressed:
+            rect = self.paint_bounds()
+            self._assistant_suppressed = suppressed
+            self._notify_dirty(rect, rect)
 
     # ---------------------------------------------------------------- 播放节拍暂停（O3）
     def pause_clip(self) -> None:

@@ -26,8 +26,8 @@ class RecordingHotkey(EmergencyHotkey):
     HOTKEY_ID = 0x4D57
     VKEY = 0x20  # Ctrl+Alt+Space
 
-    def __init__(self, stop, callback):
-        super().__init__(stop)
+    def __init__(self, stop, callback, shortcut=None):
+        super().__init__(stop, shortcut)
         self.callback = callback
 
     def _trigger(self):
@@ -79,6 +79,9 @@ class VoiceHost(QObject):
             preference_error = "语音偏好无法读取，本次使用默认配置；原文件保留。"
         self.state = {"state": "OFF", "level": 0, "capture_open": False, "devices": [], "voices": [], "error": "", "last_text": "", "models": self.models.status(), "desired": False, "test_mode": True, "word": "大肥鱼"}
         self.state.update(error=preference_error, word=self.config["word"])
+        from PySide6.QtMultimedia import QMediaDevices
+        self.state["devices"] = [{"id": bytes(d.id()).hex(), "name": d.description(), "default": d.isDefault()} for d in QMediaDevices.audioInputs()]
+        self.state["devices_checked"] = True
         self.last_final = None
         self._incoming.connect(self._event, Qt.ConnectionType.QueuedConnection)
         self._prepared.connect(self._prepared_done, Qt.ConnectionType.QueuedConnection)
@@ -162,6 +165,8 @@ class VoiceHost(QObject):
         candidate = {**self.config, **changes}
         from .voice_engine import keyword_tokens
         try:
+            validated = VoicePreferences.model_validate({key: candidate[key] for key in ("word", "sensitivity", "device", "voice", "volume")})
+            candidate.update(validated.model_dump(exclude={"tts_enabled"}))
             if candidate["word"] != self.config["word"]:
                 keyword_tokens(candidate["word"], self.models.directory("kws") / "tokens.txt")
         except (OSError, ValueError) as exc:

@@ -1,5 +1,7 @@
 # Mavis M0/M1 实际架构
 
+**M3/M4 增量：** 语音独立worker复用私有IPC，最终ASR进入原Controller/TaskService。控制中心通过同一写者的history/details/CRUD命令读取SQLite，设置持久化与诊断预览/导出亦由Controller处理，UI只收queued事件。非秘密设置只更新未来Task，创建时记录配置事件。动画桥查找上游实际素材，独立临时呈现抑制位不覆盖用户显隐或clip状态。详见 [M3](reports/M3_VOICE_E2E.md) 和 [M4](reports/M4_UI_ACCEPTANCE.md)；M4按用户要求尚未做统一功能验收。下文M0/M1描述为历史快照，新增能力以最新报告为准。
+
 M2 增量：[ADR-002](adr/002-m2-controlled-pilot.md) 与 [实机报告](reports/M2_DESKTOP_E2E.md)。Controller 接入默认关闭的 session-only Notepad 授权；NativeTasks 仍复用同一 TaskService/ToolGateway/Store，增加跨进程 lease、原生观察和独立 verifier。当前原生调用在 Controller 线程，UI 线程不阻塞，但可独立强杀的原生 worker 尚未交付，不能按完整目标架构验收。
 
 2026-11-02；关联 [上游映射](UPSTREAM_BASELINE.md)、[数据契约](DATA_SCHEMA.md)、[当前状态](IMPLEMENTATION_STATUS.md)。

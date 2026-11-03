@@ -1,0 +1,14 @@
+{
+  "upstream_commit": "34d810b1eadd98d00e7cb9b3b51428a45b5bf03e",
+  "producers": [
+    "scripts/make_click_sound.py",
+    "scripts/gen_agent_sounds.py"
+  ],
+  "purpose": "checked-in math-generated UI sounds, not recordings",
+  "files": {
+    "_internal/assets/sounds/click.wav": "a264df87c52d27a3d79a49440db4dde145b746da538eb86b3d6c6ac9e5340f1c",
+    "_internal/assets/sounds/agent/start.wav": "aed639d764adfbb30ca11c06529eb587ebd7595cf33a74c7b79200d255a16193",
+    "_internal/assets/sounds/agent/done.wav": "a05404c4dc9c4930398efeaea18f8451b67ede5753e3fbaf684e10102d14c67f",
+    "_internal/assets/sounds/agent/error.wav": "81ce8f2d92cb94264eedf692487a298441ee626c5db383b827f13f0e15cd4a24"
+  }
+}

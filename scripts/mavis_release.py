@@ -83,11 +83,7 @@ def verify_bundle(folder: Path, logs: Path) -> dict:
     missing_modules = [m for m in expected if m not in modules]
     if missing_modules:
         raise RuntimeError("MISSING_FROZEN_MODULES: "+", ".join(missing_modules))
-    built_in_audio = {}
-    for name in ("click.wav", "agent/start.wav", "agent/done.wav", "agent/error.wav"):
-        source_name = "assets/sounds/"+name
-        original = subprocess.check_output(["git", "show", "34d810b1eadd98d00e7cb9b3b51428a45b5bf03e:"+source_name], cwd=ROOT)
-        built_in_audio["_internal/"+source_name] = hashlib.sha256(original).hexdigest()
+    built_in_audio = json.loads((ROOT / "packaging/bundled-audio.json").read_text(encoding="utf-8"))["files"]
     private = []
     for path in folder.rglob("*"):
         if not path.is_file():

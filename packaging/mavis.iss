@@ -108,4 +108,4 @@ begin
     if not BackupOK then MsgBox('Mavis could not back up existing data. Do not start an upgrade until the backup issue is resolved. Your data has not been cleared.', mbError, MB_OK);
   end;
 end;
-; No UninstallDelete, DSH bridge commands, hook cleanup or credential deletion.
+{ No UninstallDelete, DSH bridge commands, hook cleanup or credential deletion. }

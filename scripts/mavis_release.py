@@ -168,11 +168,11 @@ def finish_package(folder: Path, candidate: Path, logs: Path, args, info: dict, 
     compiler = args.iscc or ROOT / ".scratch/m6/tools/InnoSetup6.7.4/ISCC.exe"
     if not compiler.is_file():
         raise FileNotFoundError("INNO_SETUP_6_7_4_COMPILER_REQUIRED")
-    import win32api
-    compiler_version = win32api.GetFileVersionInfo(str(compiler), "\\")
-    compiler_parts = (compiler_version["FileVersionMS"] >> 16, compiler_version["FileVersionMS"] & 65535, compiler_version["FileVersionLS"] >> 16)
-    if compiler_parts != (6, 7, 4):
-        raise RuntimeError("INNO_SETUP_VERSION_MISMATCH")
+    toolchain = json.loads((ROOT / "packaging/windows-toolchain.json").read_text(encoding="utf-8"))["inno_setup"]
+    for name, expected_hash in toolchain["files"].items():
+        if not (compiler.parent / name).is_file() or sha(compiler.parent / name) != expected_hash:
+            raise RuntimeError("INNO_SETUP_COMPONENT_HASH_MISMATCH: "+name)
+    info["installer_compiler"] = toolchain
     execute([str(compiler), "/Qp", "/DMyAppDir="+str(folder), "/DMyOutputDir="+str(candidate), "packaging/mavis.iss"], logs / "inno.txt", env=env)
     if not args.no_zip:
         portable(folder, candidate / f"DaFeiYu-Mavis-{VERSION}-win-x64-portable.zip", info["source_date_epoch"])

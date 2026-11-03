@@ -4,6 +4,10 @@
 
 M6打包入口：[Windows可复现构建](BUILD_MAVIS_WINDOWS.md)、[0.1.0用户说明](USER_GUIDE.md)、[模型下载与离线导入](MODEL_PACKS.md)。生成或检查Windows安装/便携产物前必读；构建版本号不代表发布Gate通过。
 
+跨机器验收：[在另一台电脑验证0.1.0](TEST_ON_SECOND_PC.md)。使用安装包内固定辅助程序和完整基准清单，保留90/72分母及所有未测项。
+
+M6真实交付：[安装候选验证报告](reports/RELEASE_VALIDATION.md)、[发布Gate](RELEASE_GATE.md)、[M6逐文件/性能/实机报告](PR-REPORT-MAVIS-M6-2026-11-03.md)。准备下载、复验、审查或发布前必读；0.1.0草稿不代表发布通过。
+
 本机试用：[双击run.bat开始使用](TRY_MAVIS.md)。准备实际使用时先读；说明当前入口、停止方式与真实功能边界。
 
 M5安全收口：[安全/稳定性报告与原始失败](reports/M5_SAFETY_STABILITY.md)、[支持与实测矩阵](SUPPORT_MATRIX.md)、[组件/素材许可清单](MAVIS_LICENSE_INVENTORY.md)。修改真实派发、停止、权限、验证、隐私或准备发布前必读。最新20/20急停及8小时限定工况通过，整体M5仍有覆盖率/权利/设备和M2缺口；见[实施状态](IMPLEMENTATION_STATUS.md#m5-最新状态)。按用户要求转向实际试用，不重复已完成专项。

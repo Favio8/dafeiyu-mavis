@@ -137,6 +137,10 @@ def build(args) -> None:
     stage.mkdir(parents=True)
     env = os.environ.copy()
     env.update(PYTHONUTF8="1", PYTHONIOENCODING="utf-8", PYTHONHASHSEED="0", SOURCE_DATE_EPOCH=str(epoch), MAVIS_BUILD_STAGE=str(stage), ANONYMIZED_TELEMETRY="false")
+    # The first installed probe found Poppler's ICU on the inherited Codex PATH.
+    # Qt uses Windows' system ICU; build dependency discovery must be hermetic.
+    env["PATH"] = os.pathsep.join([str(Path(sys.executable).parent), str(Path(sys.base_prefix)),
+                                   str(Path(os.environ["SYSTEMROOT"]) / "System32"), os.environ["SYSTEMROOT"]])
     env.pop("PYTHONPATH", None)
     env.pop("PYTHONHOME", None)
     execute([sys.executable, "scripts/prepare_frameseq_bundle.py"], logs / "material-source.txt", env=env)

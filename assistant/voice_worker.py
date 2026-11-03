@@ -89,7 +89,10 @@ def main():
         source = QAudioSource(device, fmt)
         source.setBufferSize(fmt.bytesForDuration(300000))
         io = source.start()
-        if source.error() != QAudio.Error.NoError or io is None:
+        # PySide6 6.12 真枚举：source.error() 返回的包装类与 QAudio.Error 属性访问
+        # 到的不是同一个类对象，`!=` 退化为身份比较恒为 True（repr 相同也不相等，
+        # int() 直接 TypeError）；.name 字符串比较是稳定判据（2026-11-03 本机实测）。
+        if source.error().name != "NoError" or io is None:
             close_audio()
             raise ValueError("MICROPHONE_OPEN_FAILED_CHECK_WINDOWS_PRIVACY")
         emit("capture", {"open": True, "rate": fmt.sampleRate(), "channels": fmt.channelCount(), "format": kind})
@@ -180,7 +183,7 @@ def main():
                 else:
                     raise ProtocolError("unknown voice host command")
             if source:
-                if source.error() != QAudio.Error.NoError:
+                if source.error().name != "NoError":
                     raise ValueError("MICROPHONE_DEVICE_ERROR")
                 raw = bytes(io.readAll())
                 if raw:

@@ -2,6 +2,8 @@
 
 2026-11-03。代码基于M4 `90af76f`，安全实现冻结提交为 `91b2947`。**本轮没有降低原PRD阈值；M5 Gate未通过，不宣称DEV-039～045已全部验收完成。**
 
+最新增量：用户前台交接后完成20/20实际急停专项；冻结代码的8小时完整驻留已正常结束。两者详见下文原始路径；原失败不删除。按用户最新要求停止反复压测，转向本机试用迭代；[run.bat入口与功能边界](../TRY_MAVIS.md)已提供。当前未新增或复跑pytest套件。
+
 ## 优先修复
 
 - 原生UIA、焦点、逐字符SendInput放入固定的 `assistant.native_worker`。Host仍是唯一TaskService/SQLite写者，每次副作用仍须先经过ToolGateway的一次性许可。worker没有模型、数据库、shell或更改策略/审批的接口。
@@ -42,7 +44,13 @@ Qt上游按完整模块隔离夹具生命周期，没有剔除失败模块。此
 - 第三批仍15/20：5个长输入场景被真实FOCUS_CHANGED保护拒绝，实际输入包数为0。未移除焦点检查或降低“必须实际有输入包”条件。
 - 改为人工点击START的前台交接后等待600秒未收到操作，窗口已关闭；本轮没有将这次等待算通过。后续人工配合入口保留。
 
-原始各批：`.scratch/m5/stop-stress/1793637072745931700/`、`1793637328626200300/`、`1793637533782863700/`。每项保留hotkey接收、begin/returned派发标记、worker状态、当前前台条件及失败；在途原子包不声称被撤回。仍须用当前实际PID句柄版本完成20次专项和物理按键补证。
+原始各批：`.scratch/m5/stop-stress/1793637072745931700/`、`1793637328626200300/`、`1793637533782863700/`。每项保留热键接收、派发标记、worker状态及失败；在途原子包不声称被撤回。当时尚缺20次专项和物理键，后续人手交接补齐的范围见下段。
+
+**后续人工交接已完成20/20专项。** 首次恢复遇到重复START通知触发 `KeyError('text')`，一包文本也未派发；按钮改为只接收一次BN_CLICKED并禁用。随后一次2/20在第3次setup触发STOPPED，用户确认只点按钮；旧日志未确定触发源，不能假称已定位。新增只含固定码的键鼠/会话撤权日志与试验阶段，且测试入口现在检查每个ToolResult。
+
+为直接验证真实输入中的停止，长输入改为先行，收到第一包实际SendInput返回才触发热键；网络/页面等待/工具异常各5次保持，门槛仍为20/20及≤1秒。最终 `.scratch/m5/stop-stress/1793688459472448400/result.json`：20/20，最长handler52.969ms，所有接收后新派发延迟0ms，5个长输入各有1个真实输入包；20个实际worker均退出，独立fixture文本回读稳定，前台均为该fixture。不是人工替软件完成输入，也不是物理按键补证。
+
+前两次本轮证据为 `1793688092203392000/`（会话KeyError，未生成result）与 `1793688138547212300/result.json`（2/20）。这些结果继续保留，后续不再重复已完成的专项。
 
 ```powershell
 .venv/Scripts/python.exe scripts/mavis_stop_stress.py --wait-start
@@ -61,7 +69,9 @@ Qt上游按完整模块隔离夹具生命周期，没有剔除失败模块。此
 
 Profiler显示采样器开销和初始化/预热影响；增加逐进程CPU归因，并将记录器改为有界内存、完整原始JSONL落盘，避免测量器自身持续增长。没有降低帧率或关闭动画来降CPU。后续样本记录了预热后CPU下降，仍须用完整窗口判断。
 
-**8小时正在运行，不提前标通过。** 从冻结提交 `91b2947` 的独立worktree启动，28800秒、600秒预热；完整上游桌宠，独立子进程使用16kHz合成静音，不打开麦克风。证据 `.scratch/m5/performance/soak-91b2947/launch.json`、`progress.json`、`samples.jsonl`；结束才生成 `result.json`。代码源固定在 `.scratch/m5/soak-source-91b2947`，后续文档编辑不改变被测代码。
+**8小时已正常结束。** 冻结提交 `91b2947` 的独立worktree，要求28800秒、600秒预热；实际28801.218秒、exit0、无errors、28798样本。完整上游桌宠+16kHz合成静音驱动真实本地模型，不打开麦克风。证据 `.scratch/m5/performance/soak-91b2947/result.json`、`samples.jsonl`、`analysis.json`。progress.json是最后采样时写下的completed:false，最终自然退出以result.json为准；原值不倒改。
+
+该工况稳态CPU均值4.259%，稳态RSS最大581.28MiB，全程峰值624.69MiB；首/末完整10分钟RSS中位509.33/514.28MiB（+0.972%），句柄中位2831/2831，线程105/105；逐小时数据亦保留。脚本原60秒窗口内存增长-11.34%，与10分钟窗口定义不同，两者同时保留。原自有主/语音进程均已退出。符合这个工况的8h/CPU/内存/增长阈值，不泛化为真实录音、TTS声学或任务反复执行通过。
 
 上述10min快照保存在 `.scratch/m5/performance/partial-soak-91b2947-1200.json`；该窗口首/末60样本RSS中位522.86/511.46MiB，句柄中位2831/2835，最大171线程。这是动画/解码进程树在该时间窗的变化，不推断8小时无线程/句柄增长。
 
@@ -85,4 +95,10 @@ Profiler显示采样器开销和初始化/预热影响；增加逐进程CPU归�
 
 原生进程与边界：`native_worker/native_session/native_event/native_input_monitor/native_fixture`；窗口/文档观察与验证：`windows_observer/notepad_backend/verifier/service/gateway/policy`；诊断API进程与隐私：`model_probe_worker/controller/ipc/stop/provider/privacy/diagnostics`；真实统计：`storage/history_ui`；设备选择：`voice_audio/voice_worker/voice_host`；上游兼容别名：`pet/window.py`；固定50项及边界测试、实际进程退出断言；性能/支持/许可/急停脚本。
 
-DEV-039～045的代码和测试已推进，但20次真实输入急停、8小时完成结果、覆盖率、部分许可与既有M2/M3功能缺口仍阻止M5通过。不能把本报告当发布通过声明。
+DEV-039～045的代码和实证已推进，20次专项及8小时结果已补齐限定工况；覆盖率、部分许可、物理/设备矩阵与既有M2/M3功能缺口仍保留。不能把本报告当全部PRD或正式发布通过声明。
+
+## 本机试用入口
+
+`run.bat`已改为锁定 `.venv` 的Mavis入口，不再启动上游pet模块或调用系统Python。实际系统数据目录启动报WinError17，未成功改写档案；便携入口显式使用项目内 `.mavis-local/DaFeiYuMavis`，原目录不迁移/覆盖，Git排除运行数据。启动日志确认106段动画载入、进入事件循环；只读Windows观察确认桌宠与控制中心可见。证据 `.scratch/m5/local-launch.json` 及便携目录本机启动日志。源码试用版本不冒充安装包。
+
+独立子进程保留必要SYSTEMDRIVE环境变量，避免Windows组件拿到未展开的系统路径；不扩大模型Key环境继承。工作区出现的 `%SystemDrive%/ProgramData/SogouInput/...` 未跟踪目录未读取内容、未删除或提交。按用户要求，后续通过实际使用补功能，不再扩展重复验证矩阵。

@@ -136,7 +136,7 @@ class WorkerSupervisor:
                 raise RuntimeError("worker already started or stop latch set")
             self.task_id, self.generation, self.session = task_id or uuid4(), generation, secrets.token_hex(32)
             env = {k: v for k, v in os.environ.items() if k.upper() in {
-                "SYSTEMROOT", "WINDIR", "PATH", "TEMP", "TMP", "LOCALAPPDATA", "APPDATA", "USERPROFILE"}}
+                "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "PATH", "TEMP", "TMP", "LOCALAPPDATA", "APPDATA", "USERPROFILE"}}
             env.update(PYTHONUTF8="1", ANONYMIZED_TELEMETRY="false")
             command = [sys.executable, "-m", self.MODULE]
             if self.test_mode:

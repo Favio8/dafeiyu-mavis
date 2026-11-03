@@ -24,6 +24,7 @@ class InputMonitor:
         self.changed = threading.Event()
         self.ready = threading.Event()
         self.error = None
+        self.reason: str | None = None
         self.thread_id = 0
         self.thread = threading.Thread(target=self._run, name="mavis-native-input-monitor", daemon=True)
 
@@ -48,8 +49,9 @@ class InputMonitor:
 
         def callback(structure, code, message, pointer):
             if code >= 0 and ctypes.cast(pointer, ctypes.POINTER(structure)).contents.extra != INPUT_TAG:
-                self.stop.set()
+                self.reason = "USER_KEYBOARD_INPUT" if structure is _KeyboardHook else "USER_MOUSE_INPUT"
                 self.changed.set()
+                self.stop.set()
             return user.CallNextHookEx(None, code, message, pointer)
 
         self._key_callback = callback_type(lambda n, w, p: callback(_KeyboardHook, n, w, p))

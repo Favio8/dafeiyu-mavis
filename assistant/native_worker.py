@@ -80,7 +80,8 @@ def main():
             now = time.monotonic()
             if monitor.changed.is_set() or (watcher and watcher.reason) or now-previous > 2 or not input_desktop_is_default():
                 stopped.set()
-                send({"event": "revoked", "code": "USER_INPUT_OR_CONTEXT_OR_SESSION_LOST", "mono": now})
+                reason = monitor.reason or (watcher.reason if watcher else None) or ("SESSION_TIME_GAP" if now-previous > 2 else "INPUT_DESKTOP_UNAVAILABLE")
+                send({"event": "revoked", "code": reason, "mono": now})
                 return
             previous = now
 
@@ -157,7 +158,7 @@ def main():
             except (PolicyDenied, OSError, RuntimeError, comtypes.COMError) as exc:
                 send({"request": request_id, "ok": False, "code": str(exc) if isinstance(exc, PolicyDenied) else "NATIVE_RESULT_UNKNOWN"})
         if monitor.changed.is_set() or watcher and watcher.reason:
-            send({"event": "revoked", "code": "USER_INPUT_OR_CONTEXT_OR_SESSION_LOST", "mono": time.monotonic()})
+            send({"event": "revoked", "code": monitor.reason or watcher.reason, "mono": time.monotonic()})
         return 0
     finally:
         ended.set()

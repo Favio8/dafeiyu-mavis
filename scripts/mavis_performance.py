@@ -102,7 +102,7 @@ def main():
     voice = None
     voice_log = None
     if args.voice_models:
-        env = {k:v for k,v in os.environ.items() if k.upper() in {"SYSTEMROOT","WINDIR","PATH","TEMP","TMP","LOCALAPPDATA","APPDATA","USERPROFILE"}}
+        env = {k:v for k,v in os.environ.items() if k.upper() in {"SYSTEMROOT","SYSTEMDRIVE","WINDIR","PATH","TEMP","TMP","LOCALAPPDATA","APPDATA","USERPROFILE"}}
         env.update(PYTHONUTF8="1",ANONYMIZED_TELEMETRY="false")
         voice_log = (output / "voice-child.txt").open("w", encoding="utf-8")
         voice = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "--voice-child", "--parent-pid",str(os.getpid()), "--voice-models", str(args.voice_models.resolve()), "--seconds", str(args.seconds)], env=env, stdout=voice_log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW if os.name=="nt" else 0)

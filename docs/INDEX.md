@@ -2,7 +2,9 @@
 
 ## DaFeiYu Mavis 增量基线（2026-11-03）
 
-M5安全收口：[安全/稳定性报告与原始失败](reports/M5_SAFETY_STABILITY.md)、[支持与实测矩阵](SUPPORT_MATRIX.md)、[组件/素材许可清单](MAVIS_LICENSE_INVENTORY.md)。修改真实派发、停止、权限、验证、隐私或准备发布前必读。固定50项通过不等于M5 Gate通过；8小时运行中，急停专项15/20，其他缺口见[实施状态](IMPLEMENTATION_STATUS.md#m5-最新状态)。
+本机试用：[双击run.bat开始使用](TRY_MAVIS.md)。准备实际使用时先读；说明当前入口、停止方式与真实功能边界。
+
+M5安全收口：[安全/稳定性报告与原始失败](reports/M5_SAFETY_STABILITY.md)、[支持与实测矩阵](SUPPORT_MATRIX.md)、[组件/素材许可清单](MAVIS_LICENSE_INVENTORY.md)。修改真实派发、停止、权限、验证、隐私或准备发布前必读。最新20/20急停及8小时限定工况通过，整体M5仍有覆盖率/权利/设备和M2缺口；见[实施状态](IMPLEMENTATION_STATUS.md#m5-最新状态)。按用户要求转向实际试用，不重复已完成专项。
 
 PR报告存档：[PR-REPORT-MAVIS-M5-2026-11-03.md](PR-REPORT-MAVIS-M5-2026-11-03.md)，本轮逐文件修改、性能与实机记录入口；审查本轮累计变更前必读。
 

@@ -1,5 +1,7 @@
 # M1 数据与恢复
 
+本机run.bat便携入口将同样的数据格式放在项目 `.mavis-local/DaFeiYuMavis/`，Git忽略该目录；通用CLI不传data-home时默认命名空间不变。没有移动、合并或覆盖已有用户库，凭据仍由Windows凭据库管理。
+
 M5补充（2026-11-03）：Observation JSON增加默认空字符串的identity_digest/document_digest，用于进程/窗口与草稿身份绑定，旧记录可继续读取，SQLite版本未变。明文窗口标题与文档名不作为该摘要来源的旁路字段入库；Key继续集中脱敏，诊断只输出固定错误码。历史统计使用相同筛选范围内全部已结束Task为分母，VoiceAttempt独立；无分母显示空值，未知费用不估算。最新验证与限制见 [M5报告](reports/M5_SAFETY_STABILITY.md)。
 
 **M4 增量：** SQLite版本仍为1，无结构迁移。既有表新增查询/删除接口，Task与VoiceAttempt独立筛选并50条分页；UI删除事务先清理关联语音尝试，再级联删除结束Task，拒绝删除活动Task。7/30/90天保留启动后及每小时调度，配置损坏时暂停自动清理。`assistant-settings.json`仅保存非秘密配置，新Task通过provider字段和`task.configuration`事件保留当时参数，`parent_task_id`关联显式重跑。CRUD与保留已实现，统一验收待做；下文保留M1历史快照。

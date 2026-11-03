@@ -1,5 +1,7 @@
 # Mavis 实际架构与阶段演进
 
+本机试用入口（2026-11-03）：run.bat固定使用项目venv与assistant模块，显式 `--data-home .mavis-local`；窗口/文档/审批权限仍由同一Host控制。停止事件增加固定原因码用于排障，不携带键值、鼠标坐标或用户窗口内容。必要Windows环境变量SYSTEMDRIVE保留，模型Key仍不继承给原生worker。便携数据目录只为绕开本机默认目录WinError17，不自动迁移/覆盖旧目录，详见 [试用说明](TRY_MAVIS.md)。
+
 **M5最新（2026-11-03）：** `Controller → TaskService/ToolGateway → NativeSession → assistant.native_worker` 已替换旧的Host线程内原生调用；UIA/COM、逐字符SendInput及Windows会话级lease只在固定子进程中运行。每次execute请求对应已消费的一次性许可；子进程只有闭合工具Schema，不能更改策略/审批/数据库。测试fixture必须由CLI显式test-mode启动，正常产品不启用。
 
 Host先置nonce绑定的Win32共享停止事件，再终止已核对PID/进程出生/解释器并持有实际句柄的worker。原生最后派发点检查同一停止事件；低级键鼠观察、上下文watchdog及锁屏/休眠通知均会撤权，不吞用户输入。父进程消失时子进程退出。仅释放本程序未完成的Unicode KEYUP，不释放用户修饰键。

@@ -1,5 +1,7 @@
 # Windows 开发与验证入口
 
+本机快速启动：双击仓库根 `run.bat`，使用锁定的 `.venv/Scripts/pythonw.exe -m assistant --data-home .mavis-local`。该便携入口避开本机系统数据目录的WinError 17，原数据不迁移/覆盖，私有数据不入Git。正常使用步骤见 [本机试用](TRY_MAVIS.md)。用户现要求以实现/试用迭代为主；已结束的急停与8小时驻留不重复运行，下文历史命令作为可复现入口保留。
+
 M2 受限试验入口与最新结果见 [M2_DESKTOP_E2E](reports/M2_DESKTOP_E2E.md)。正常 `python -m assistant` 中可在模型页分别测试连接/工具；Key 仅通过 `scripts/mavis_model.py --save-key` 隐藏录入。电脑操作默认关闭，应用内先按 Ctrl+Alt+F12 测试、在概览复位，再在权限页授权本次受限操作；支持 `打开记事本`、`输入：<最多16个单行BMP字符>`。已有用户窗口不接管、不保存文件。以下原 M0/M1 文本为历史说明，其中“所有真实输入未接入”由此受限增量取代，不表示完整 M2 通过。
 
 2026-11-02；仅 M0/M1 源码开发版，**不是 v0.1 完成版或安装包**。首版仍要求语音唤醒与真实 Computer Use。先读 [当前状态](IMPLEMENTATION_STATUS.md)、[已知限制](KNOWN_LIMITATIONS.md) 和 [上游构建说明](ONEDIR_PACKAGING.md)。
@@ -105,7 +107,7 @@ uv pip sync --python .venv-audit/Scripts/python.exe requirements-audit.lock.txt
 .venv/Scripts/python.exe scripts/mavis_performance.py --seconds 28800 --warmup 600 --voice-models .scratch/m3/models
 ```
 
-资源脚本默认完整桌宠；voice-models使用合成静音驱动真实本地推理，没有打开麦克风。短时CPU/心跳不能代替10分钟稳态和UI点击延迟。当前冻结源码 `91b2947` 的8小时实例输出位于 `.scratch/m5/performance/soak-91b2947/`，**正在运行时不要重复启动或移动其source worktree**。查看progress.json；只有自然结束的result.json才能作8小时结果。安装包、真人麦克风、混合DPI和缺失M2场景继续待验证。
+资源脚本默认完整桌宠；voice-models使用合成静音驱动真实本地推理，没有打开麦克风。冻结源码 `91b2947` 的8小时实例已自然结束，结果位于 `.scratch/m5/performance/soak-91b2947/result.json`；逐小时/完整窗口分析在analysis.json。按用户要求不重复此专项。安装包、真人麦克风、混合DPI和缺失M2场景仍未全部覆盖；上述命令保留供后续必要排障使用。
 
 ## M3 本地语音（阶段记录）
 

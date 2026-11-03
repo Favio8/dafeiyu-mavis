@@ -30,6 +30,7 @@ class NativeSession(RegisteredSystemBackend, WorkerSupervisor):
         self.pending_character = None
         self.shared_stop = None
         self.dispatches = []
+        self.revocation_code: str | None = None
 
     def bootstrap(self):
         from .native_event import NativeStopEvent
@@ -63,6 +64,7 @@ class NativeSession(RegisteredSystemBackend, WorkerSupervisor):
             return
         value = json.loads(message.payload)
         if value.get("event") == "revoked":
+            self.revocation_code = value["code"]
             self.stop_controller.trip()
         elif value.get("event") == "dispatch":
             self.dispatches.append(value)

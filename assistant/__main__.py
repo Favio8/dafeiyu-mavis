@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 def main() -> int:
-    """Launch a non-admin M1 host with isolated data and optional explicit test mode."""
-    parser = argparse.ArgumentParser(description="DaFeiYu Mavis M0/M1 — real desktop input is disabled")
+    """Launch the native Mavis app with isolated data and local control consent."""
+    parser = argparse.ArgumentParser(description="DaFeiYu Mavis — native desktop assistant; computer control requires local consent")
     parser.add_argument("--test-mode", action="store_true", help="use a separate test database and in-memory exercises")
     parser.add_argument("--data-home", type=Path, help="parent of the DaFeiYuMavis data namespace")
     parser.add_argument("--core-only", action="store_true", help="run only the core UI for diagnostics")

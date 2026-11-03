@@ -70,3 +70,11 @@
 | `-m ruff check assistant pet tests scripts`、`-m compileall -q assistant <M5脚本>`、`git diff --check` | 全部退出0；无noqa或排除新模块 | `.scratch/m5/final-checks.json`（完整参数、输出、计时） |
 
 M5 Gate仍未通过。当前命令不是完整B01–B30、60次真人语音、物理锁屏/麦克风或干净安装机验收。
+
+### 用户协作与便携试用增量
+
+- 用户点击START后，入口先出现重复按钮事件 `KeyError('text')`，随后一次2/20触发STOPPED；旧日志无法确定源，用户确认未操作其他输入。未计通过，保留会话输出与 `.scratch/m5/stop-stress/1793688138547212300/result.json`。
+- 修复一次性BN_CLICKED、补固定停止原因/阶段，检查每次ToolResult，长输入在首包真实返回后触发急停。`scripts/mavis_stop_stress.py --wait-start` 最终20/20，handler最大52.969ms、接收后新派发0ms，所有worker退出、文本独立读回稳定；证据 `.scratch/m5/stop-stress/1793688459472448400/result.json` 和summary.json。未使用物理热键。
+- 冻结源码8小时实例自然结束，exit0、28801.218s、28798样本、无errors。只读计算逐小时及首末完整10min：CPU4.259%、稳态RSS最大581.28MiB、全程峰值624.69MiB、内存中位增长0.972%、句柄2831/2831、线程105/105；原60s指标另保留。证据 `.scratch/m5/performance/soak-91b2947/result.json` / analysis.json。
+- `run.bat`系统目录启动报WinError17（原子写档案失败），未覆盖档案。显式改用 `--data-home .mavis-local` 后，经隐藏Start-Process启动run.bat，Windows只读观察可见桌宠/控制中心；本机日志载入106段动画并进入事件循环。证据 `.scratch/m5/local-launch.json` 与便携目录日志；Key与私有数据不入Git。
+- 用户明确要求以实现/实际试用推进，本轮不新增或复跑pytest/覆盖率与已完成专项；保留必要静态/编译检查和这次真实启动结果。物理键、真实麦克风和未完成应用范围如实列账。

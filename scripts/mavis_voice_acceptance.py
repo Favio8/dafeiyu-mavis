@@ -18,6 +18,8 @@ def main():
     parser.add_argument("--ui-probe", action="store_true", help="capture own voice page at two widths and exit without opening a microphone")
     parser.add_argument("--dark", action="store_true")
     parser.add_argument("--tts-soak-seconds", type=int, default=0, help="after a real microphone is armed, repeatedly play wake phrases for this many seconds")
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--emergency-shortcut", default="Ctrl+Alt+F12")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(root))
@@ -31,10 +33,14 @@ def main():
     from assistant.voice_host import VoiceHost
     from assistant.voice_models import ModelManager
     app = QApplication([])
-    output = root / ".scratch/m3/acceptance" / str(time.time_ns())
+    if getattr(sys,"frozen",False) and args.output is None:
+        parser.error("installed acceptance requires a new explicit --output directory")
+    output = args.output or root / ".scratch/m3/acceptance" / str(time.time_ns())
+    if output.exists():
+        raise FileExistsError("ACCEPTANCE_OUTPUT_EXISTS")
     output.mkdir(parents=True)
     stop = StopController()
-    hotkey = EmergencyHotkey(stop)
+    hotkey = EmergencyHotkey(stop,args.emergency_shortcut)
     hotkey.start()
     controller = Controller(output / "profile", stop, hotkey=hotkey)
     window = ControlCenter(controller, stop, hotkey, dark=args.dark)

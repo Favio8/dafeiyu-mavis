@@ -27,7 +27,11 @@ def main():
     parser.add_argument("--output", type=Path)
     parser.add_argument("--profile", action="store_true")
     parser.add_argument("--parent-pid",type=int)
+    parser.add_argument("--emergency-shortcut")
+    parser.add_argument("--recording-shortcut")
     args = parser.parse_args()
+    if getattr(sys,"frozen",False) and not args.voice_child and args.output is None:
+        parser.error("installed residency requires a new explicit --output directory")
     root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(root))
     if args.voice_child:
@@ -57,6 +61,11 @@ def main():
         raise ValueError("refusing to combine separate residency runs")
     profile = output / "profile"
     profile.mkdir()
+    if args.emergency_shortcut or args.recording_shortcut:
+        from assistant.settings import AppSettings,save_settings
+        save_settings(profile / "DaFeiYuMavis" / "assistant-settings.json",AppSettings(
+            emergency_shortcut=args.emergency_shortcut or "Ctrl+Alt+F12",
+            recording_shortcut=args.recording_shortcut or "Ctrl+Alt+Space"))
     os.environ.update(DAFEIYU_MAVIS="1", MAVIS_DATA_HOME=str(profile), MAVIS_TEST_MODE="1", ANONYMIZED_TELEMETRY="false")
     os.environ.pop("QT_QPA_PLATFORM", None)
     from pet.qt_plugin_sanitizer import sanitize_plugin_path
@@ -105,7 +114,8 @@ def main():
         env = {k:v for k,v in os.environ.items() if k.upper() in {"SYSTEMROOT","SYSTEMDRIVE","WINDIR","PATH","TEMP","TMP","LOCALAPPDATA","APPDATA","USERPROFILE"}}
         env.update(PYTHONUTF8="1",ANONYMIZED_TELEMETRY="false")
         voice_log = (output / "voice-child.txt").open("w", encoding="utf-8")
-        voice = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "--voice-child", "--parent-pid",str(os.getpid()), "--voice-models", str(args.voice_models.resolve()), "--seconds", str(args.seconds)], env=env, stdout=voice_log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW if os.name=="nt" else 0)
+        entry = [sys.executable,"--residency"] if getattr(sys,"frozen",False) else [sys.executable,str(Path(__file__).resolve())]
+        voice = subprocess.Popen([*entry, "--voice-child", "--parent-pid",str(os.getpid()), "--voice-models", str(args.voice_models.resolve()), "--seconds", str(args.seconds)], env=env, stdout=voice_log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW if os.name=="nt" else 0)
     def heartbeat():
         now = time.monotonic()
         beats[round((now-previous_beat[0])*1000)] += 1

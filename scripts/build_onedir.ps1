@@ -75,6 +75,14 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
+if ($Variant -eq 'mavis') {
+    if ($SkipCheck -or $SkipBuild -or $Gif) { throw 'Mavis does not skip artifact checks/builds or change animation formats.' }
+    $mavisPython = Join-Path $root '.venv\Scripts\python.exe'
+    $mavisArgs = @('scripts\mavis_release.py', 'build')
+    if ($SkipZip) { $mavisArgs += '--no-zip' }
+    & $mavisPython @mavisArgs
+    exit $LASTEXITCODE
+}
 $buildStamp = (Get-Date).ToUniversalTime().ToString('o')
 Write-Host "[build] pet-runtime-2026-09-01.1 build_started=$buildStamp source=$root" -ForegroundColor DarkCyan
 

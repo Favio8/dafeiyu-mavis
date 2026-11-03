@@ -56,8 +56,10 @@ class RegisteredSystemBackend:
         try:
             if stop.is_set() or observe_window(self.expected.hwnd).context_digest != self.expected.context_digest:
                 raise PolicyDenied("STOPPED_OR_CONTEXT_CHANGED")
-            result = shell.ShellExecuteEx(fMask=shellcon.SEE_MASK_NOCLOSEPROCESS | shellcon.SEE_MASK_FLAG_NO_UI,
-                lpVerb="open", lpFile=str(path), nShow=win32con.SW_SHOWNORMAL)
+            from .frozen_environment import external_application
+            with external_application():
+                result = shell.ShellExecuteEx(fMask=shellcon.SEE_MASK_NOCLOSEPROCESS | shellcon.SEE_MASK_FLAG_NO_UI,
+                    lpVerb="open", lpFile=str(path), nShow=win32con.SW_SHOWNORMAL)
             handle = result.get("hProcess")
             if handle:
                 try:

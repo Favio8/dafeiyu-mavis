@@ -249,7 +249,7 @@ def test_fixed_negative_case(case, tmp_path, monkeypatch):
     finally:
         if junction and junction.exists(): os.rmdir(junction)
         service.store.close()
-        output = Path(__file__).resolve().parents[2] / ".scratch/m5/security"
+        output = Path(os.environ["MAVIS_SECURITY_EVIDENCE"]) if os.environ.get("MAVIS_SECURITY_EVIDENCE") else Path(__file__).resolve().parents[2] / ".scratch/m5/security"
         output.mkdir(parents=True, exist_ok=True)
         (output / (case["id"]+".json")).write_text(json.dumps({**case, "native_effect_calls":effects.calls,
             "authorized_fixture_effects":fixture_effects, "elapsed_s":time.monotonic()-start,

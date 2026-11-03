@@ -66,11 +66,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--fixture")
     parser.add_argument("--wait-start",action="store_true")
+    parser.add_argument("--output",type=Path)
     args = parser.parse_args()
     root=Path(__file__).resolve().parents[1]
     sys.path.insert(0,str(root))
     if args.fixture:
         return fixture(args.fixture)
+    if getattr(sys,"frozen",False) and args.output is None:
+        parser.error("installed stop stress requires a new explicit --output directory")
     import win32gui
     from assistant.actions import FocusWindow,FocusControl,TypeText
     from assistant.contracts import Goal,TaskStatus as S,Budget
@@ -81,12 +84,13 @@ def main():
     from assistant.storage import Store
     from assistant.stop import StopController,EmergencyHotkey
     from assistant.windows_observer import observe_window
-    output=root / ".scratch/m5/stop-stress" / str(time.time_ns())
+    output=args.output or root / ".scratch/m5/stop-stress" / str(time.time_ns())
     output.mkdir(parents=True)
     title="Mavis safety fixture "+uuid4().hex
     env={k:v for k,v in os.environ.items() if k.upper() in {"SYSTEMROOT","SYSTEMDRIVE","WINDIR","PATH","TEMP","TMP","LOCALAPPDATA","APPDATA","USERPROFILE"}}
     env.update(PYTHONUTF8="1",ANONYMIZED_TELEMETRY="false")
-    gui=subprocess.Popen([sys.executable,str(Path(__file__).resolve()),"--fixture",title],env=env,
+    entry=[sys.executable,"--stop-stress"] if getattr(sys,"frozen",False) else [sys.executable,str(Path(__file__).resolve())]
+    gui=subprocess.Popen([*entry,"--fixture",title],env=env,
         stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,encoding="utf-8",
         creationflags=subprocess.CREATE_NO_WINDOW if os.name=="nt" else 0)
     rows=[];setup_error=None

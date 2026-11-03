@@ -1,0 +1,19 @@
+DaFeiYu Mavis 0.1.0 - evaluation build
+
+This version number identifies the build. It does not mean the release acceptance gate has passed.
+
+Mavis and upstream desktop-pet source code carry their included MIT notices.
+The code license does not relicense bundled character artwork, sound assets,
+Qt, FFmpeg, speech models or other third-party components.
+
+Character artwork is attributed to the sources in THIRD_PARTY_NOTICES.md and
+retains its stated personal, non-commercial restrictions. Exact redistribution
+rights remain a release blocker. No blanket commercial-use permission is granted.
+
+Qt/FFmpeg and other components retain their separate LGPL/GPL and other notices.
+See the included licenses directory and component inventory. Speech model weights
+are not bundled; the application supports pinned downloads and local import.
+
+Current computer control is limited to explicitly authorized Notepad operations.
+Unfinished functionality and unmeasured acceptance items remain documented.
+Windows credentials and application data are retained when uninstalling.

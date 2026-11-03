@@ -13,6 +13,8 @@ def main() -> int:
     parser.add_argument("--data-home", type=Path, help="parent of the DaFeiYuMavis data namespace")
     parser.add_argument("--core-only", action="store_true", help="run only the core UI for diagnostics")
     args = parser.parse_args()
+    from .distribution import installed_data_home
+    args.data_home = args.data_home or installed_data_home()
     os.environ["ANONYMIZED_TELEMETRY"] = "false"
     os.environ["DAFEIYU_MAVIS"] = "1"
     if args.data_home:

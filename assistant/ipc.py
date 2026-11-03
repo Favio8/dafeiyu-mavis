@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 import secrets
 import subprocess
-import sys
 import threading
 import ctypes
 from ctypes import wintypes
@@ -99,7 +98,8 @@ class WorkerSupervisor:
         peer = psutil.Process(pid)
         if pid != self.process.pid and self.process.pid not in {p.pid for p in peer.parents()}:
             raise ProtocolError("worker PID is not our descendant")
-        allowed = {Path(sys.executable).resolve(), Path(getattr(sys,"_base_executable",sys.executable)).resolve()}
+        from .distribution import worker_executables
+        allowed = worker_executables()
         if Path(peer.exe()).resolve() not in allowed:
             raise ProtocolError("worker executable identity mismatch")
         if os.name == "nt":
@@ -138,9 +138,8 @@ class WorkerSupervisor:
             env = {k: v for k, v in os.environ.items() if k.upper() in {
                 "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "PATH", "TEMP", "TMP", "LOCALAPPDATA", "APPDATA", "USERPROFILE"}}
             env.update(PYTHONUTF8="1", ANONYMIZED_TELEMETRY="false")
-            command = [sys.executable, "-m", self.MODULE]
-            if self.test_mode:
-                command.append("--test-mode")
+            from .distribution import worker_command
+            command = worker_command(self.MODULE, test_mode=self.test_mode)
             self.process = subprocess.Popen(command, cwd=Path(__file__).resolve().parents[1], env=env,
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0, bufsize=0)
@@ -225,7 +224,8 @@ class WorkerSupervisor:
                     children=[]
                 for child in reversed(children):
                     try:
-                        if Path(child.exe()).resolve() in {Path(sys.executable).resolve(),Path(getattr(sys,"_base_executable",sys.executable)).resolve()}:
+                        from .distribution import worker_executables
+                        if Path(child.exe()).resolve() in worker_executables():
                             child.terminate()
                             child.wait(timeout=.25)
                     except psutil.NoSuchProcess:

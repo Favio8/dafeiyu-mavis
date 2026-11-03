@@ -16,7 +16,8 @@ class FixtureDraftBackend(NotepadDraftBackend):
         process = psutil.Process(target.pid)
         if host_pid not in {p.pid for p in process.parents()}:
             raise PolicyDenied("FIXTURE_PARENT_MISMATCH")
-        if Path(process.exe()).resolve() != Path(sys._base_executable).resolve():
+        expected_executable = sys.executable if getattr(sys,"frozen",False) else sys._base_executable
+        if Path(process.exe()).resolve() != Path(expected_executable).resolve():
             raise PolicyDenied("FIXTURE_EXECUTABLE_MISMATCH")
         if win32gui.GetWindowText(target.hwnd) != title:
             raise PolicyDenied("FIXTURE_TITLE_MISMATCH")

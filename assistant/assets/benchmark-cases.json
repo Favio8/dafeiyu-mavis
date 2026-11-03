@@ -1,0 +1,242 @@
+[
+  {
+    "id": "B01",
+    "goal": "打开 B 站主页",
+    "initial_conditions": "默认浏览器关闭/已开两种起点",
+    "required_oracle": "正确浏览器目标地址；失败区分外网不可用",
+    "command": "打开 B 站",
+    "gui_required": false
+  },
+  {
+    "id": "B02",
+    "goal": "打开指定测试网页",
+    "initial_conditions": "本地 fixture 服务器随机端口，预先授权",
+    "required_oracle": "正确页面标题和 URL",
+    "command": "打开测试网页：{url}",
+    "gui_required": false
+  },
+  {
+    "id": "B03",
+    "goal": "启动记事本",
+    "initial_conditions": "未运行",
+    "required_oracle": "新建空白编辑窗口存在",
+    "command": "打开记事本",
+    "gui_required": false
+  },
+  {
+    "id": "B04",
+    "goal": "打开我的测试文件夹",
+    "initial_conditions": "已授权临时工作目录",
+    "required_oracle": "资源管理器路径正确",
+    "command": "打开我的测试文件夹：{workspace}",
+    "gui_required": false
+  },
+  {
+    "id": "B05",
+    "goal": "切换到“测试笔记”窗口",
+    "initial_conditions": "多个记事本窗口同时存在",
+    "required_oracle": "唯一指定窗口成为前台",
+    "command": "切换到测试笔记窗口",
+    "gui_required": false
+  },
+  {
+    "id": "B06",
+    "goal": "把测试窗口恢复到正常大小",
+    "initial_conditions": "目标处于最小化或最大化",
+    "required_oracle": "窗口状态符合请求",
+    "command": "把测试窗口恢复到正常大小",
+    "gui_required": false
+  },
+  {
+    "id": "B07",
+    "goal": "输入“你好，我是大肥鱼。”",
+    "initial_conditions": "新空白文档",
+    "required_oracle": "UIA/人工确认文本逐字一致",
+    "command": "输入：你好，我是大肥鱼。",
+    "gui_required": true
+  },
+  {
+    "id": "B08",
+    "goal": "在下一行输入给定英文句子",
+    "initial_conditions": "文档已有第一行",
+    "required_oracle": "原文保留、新行和大小写正确",
+    "command": "输入：\nThe quick brown fox.",
+    "gui_required": true
+  },
+  {
+    "id": "B09",
+    "goal": "将当前测试草稿全部替换成指定文本",
+    "initial_conditions": "仅限本任务创建的未保存草稿",
+    "required_oracle": "替换范围和内容准确，无错窗口输入",
+    "command": "将当前测试草稿全部替换成：{replacement}",
+    "gui_required": true
+  },
+  {
+    "id": "B10",
+    "goal": "查找文档中的指定词语",
+    "initial_conditions": "测试文档含多次出现的词",
+    "required_oracle": "查找框与选中匹配项正确",
+    "command": "在当前测试文档中查找：benchmark",
+    "gui_required": true
+  },
+  {
+    "id": "B11",
+    "goal": "保存为授权目录里的新文件",
+    "initial_conditions": "文件名不存在，审批后执行",
+    "required_oracle": "通过另一个文件读取器验证路径和全文",
+    "command": "将当前测试草稿另存为：{newfile}",
+    "gui_required": true
+  },
+  {
+    "id": "B12",
+    "goal": "保存到包含中文和空格的路径",
+    "initial_conditions": "目录已授权、文件名不存在",
+    "required_oracle": "路径和 UTF-8/实际编码处理正确，内容无乱码",
+    "command": "将测试草稿保存到中文和空格路径：{newfile}",
+    "gui_required": true
+  },
+  {
+    "id": "B13",
+    "goal": "关闭一个空白且无修改的测试窗口",
+    "initial_conditions": "多个窗口，其中目标明确",
+    "required_oracle": "只关闭指定窗口，其他窗口未受影响",
+    "command": "关闭指定的空白无修改测试窗口",
+    "gui_required": true
+  },
+  {
+    "id": "B14",
+    "goal": "在资源管理器中打开指定 txt",
+    "initial_conditions": "多个同类文件混排",
+    "required_oracle": "正确文件在编辑器打开，内容匹配",
+    "command": "在资源管理器中打开：{file}",
+    "gui_required": true
+  },
+  {
+    "id": "B15",
+    "goal": "在授权目录里新建文件夹",
+    "initial_conditions": "请求 R1 审批",
+    "required_oracle": "通过 GUI 创建正确名称，外部文件检查通过",
+    "command": "在授权测试目录里新建文件夹：{workspace}/新建文件夹",
+    "gui_required": true
+  },
+  {
+    "id": "B16",
+    "goal": "进入指定子文件夹",
+    "initial_conditions": "Explorer 起点可变",
+    "required_oracle": "路径准确，不进入同名其他位置",
+    "command": "进入授权测试目录中的指定子文件夹",
+    "gui_required": true
+  },
+  {
+    "id": "B17",
+    "goal": "选中某个指定文件但不要打开",
+    "initial_conditions": "文件顺序随机",
+    "required_oracle": "选中对象正确、未启动文件关联应用",
+    "command": "选中指定测试文件但不要打开",
+    "gui_required": true
+  },
+  {
+    "id": "B18",
+    "goal": "将测试窗口移到当前屏幕左半边",
+    "initial_conditions": "不同分辨率与 DPI",
+    "required_oracle": "相对工作区位置正确，不用写死像素",
+    "command": "将测试窗口移到当前屏幕左半边",
+    "gui_required": true
+  },
+  {
+    "id": "B19",
+    "goal": "在网页搜索指定关键词",
+    "initial_conditions": "搜索框位置和可访问名称在语义等价范围变化",
+    "required_oracle": "搜索结果含准确关键词",
+    "command": "在测试网页搜索：{keyword}",
+    "gui_required": true
+  },
+  {
+    "id": "B20",
+    "goal": "打开网页中的“详细信息”面板",
+    "initial_conditions": "按钮位置随机",
+    "required_oracle": "对应面板实际展开",
+    "command": "打开网页的详细信息面板",
+    "gui_required": true
+  },
+  {
+    "id": "B21",
+    "goal": "勾选“仅显示文档”",
+    "initial_conditions": "初始勾选状态可变",
+    "required_oracle": "最终为已勾选，不盲目 toggle",
+    "command": "把仅显示文档勾选为选中",
+    "gui_required": true
+  },
+  {
+    "id": "B22",
+    "goal": "将类别选择为“教程”",
+    "initial_conditions": "下拉项排序随机",
+    "required_oracle": "选项值正确",
+    "command": "将网页类别选择为教程",
+    "gui_required": true
+  },
+  {
+    "id": "B23",
+    "goal": "滚动找到指定结果",
+    "initial_conditions": "项目在首屏之外",
+    "required_oracle": "正确项目可见且识别成功",
+    "command": "滚动找到指定搜索结果",
+    "gui_required": true
+  },
+  {
+    "id": "B24",
+    "goal": "翻到搜索结果第二页",
+    "initial_conditions": "当前第一页",
+    "required_oracle": "页码与结果集合正确",
+    "command": "翻到搜索结果第二页",
+    "gui_required": true
+  },
+  {
+    "id": "B25",
+    "goal": "填写测试表单草稿但不要提交",
+    "initial_conditions": "字段位置变化、提交按钮清晰",
+    "required_oracle": "字段准确；提交事件次数为 0",
+    "command": "填写测试表单草稿但不要提交",
+    "gui_required": true
+  },
+  {
+    "id": "B26",
+    "goal": "等按钮可用后打开内容",
+    "initial_conditions": "随机 0.5–3 秒延迟加载",
+    "required_oracle": "不盲点；内容展开且无重复动作",
+    "command": "等待网页按钮可用后打开内容",
+    "gui_required": true
+  },
+  {
+    "id": "B27",
+    "goal": "把网页上的编号记到记事本",
+    "initial_conditions": "网页编号每次变化",
+    "required_oracle": "新文档内容等于本轮实际编号",
+    "command": "把网页上本轮编号记到新记事本",
+    "gui_required": true
+  },
+  {
+    "id": "B28",
+    "goal": "打开测试文档，追加文字并另存为新文件",
+    "initial_conditions": "原文件只读保护，新目标需审批",
+    "required_oracle": "原文件未改，新文件内容正确",
+    "command": "打开测试文档追加文字并另存为新文件：{newfile}",
+    "gui_required": true
+  },
+  {
+    "id": "B29",
+    "goal": "找到指定网页结果，把标题写到记事本",
+    "initial_conditions": "结果顺序/标题按 fixture 随机种子变化",
+    "required_oracle": "文本与本轮正确结果标题一致",
+    "command": "找到指定网页结果，将标题写入新记事本",
+    "gui_required": true
+  },
+  {
+    "id": "B30",
+    "goal": "点击自绘面板中的指定低风险按钮",
+    "initial_conditions": "无可用 UIA 目标，已授权视觉，按钮位置随机",
+    "required_oracle": "经过视觉定位后，独立可观察结果字段匹配",
+    "command": "点击自绘面板中的指定低风险按钮",
+    "gui_required": true
+  }
+]

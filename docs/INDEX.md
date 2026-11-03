@@ -2,6 +2,8 @@
 
 ## DaFeiYu Mavis 增量基线（2026-11-03）
 
+M6打包入口：[Windows可复现构建](BUILD_MAVIS_WINDOWS.md)、[0.1.0用户说明](USER_GUIDE.md)、[模型下载与离线导入](MODEL_PACKS.md)。生成或检查Windows安装/便携产物前必读；构建版本号不代表发布Gate通过。
+
 本机试用：[双击run.bat开始使用](TRY_MAVIS.md)。准备实际使用时先读；说明当前入口、停止方式与真实功能边界。
 
 M5安全收口：[安全/稳定性报告与原始失败](reports/M5_SAFETY_STABILITY.md)、[支持与实测矩阵](SUPPORT_MATRIX.md)、[组件/素材许可清单](MAVIS_LICENSE_INVENTORY.md)。修改真实派发、停止、权限、验证、隐私或准备发布前必读。最新20/20急停及8小时限定工况通过，整体M5仍有覆盖率/权利/设备和M2缺口；见[实施状态](IMPLEMENTATION_STATUS.md#m5-最新状态)。按用户要求转向实际试用，不重复已完成专项。

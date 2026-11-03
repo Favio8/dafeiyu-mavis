@@ -5,6 +5,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import importlib.metadata
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -164,6 +165,16 @@ def build(args) -> None:
 
 def finish_package(folder: Path, candidate: Path, logs: Path, args, info: dict, env=None) -> None:
     """Reuse an unchanged onedir after a packaging-only fix; preserve the old source SHA."""
+    # The fixed raw acceptance file imports this extension dynamically; Analysis
+    # cannot see that import. Copy only the locked pywin32 component, not host paths.
+    module = importlib.util.find_spec("win32file")
+    source = Path(module.origin)
+    target = folder / "_internal" / source.name
+    if target.exists() and sha(target) != sha(source):
+        raise RuntimeError("ACCEPTANCE_COMPONENT_HASH_MISMATCH")
+    if not target.exists():
+        shutil.copy2(source, target)
+    info["acceptance_components"] = {target.relative_to(folder).as_posix(): {"package": "pywin32", "version": importlib.metadata.version("pywin32"), "sha256": sha(target)}}
     verify_bundle(folder, logs)
     compiler = args.iscc or ROOT / ".scratch/m6/tools/InnoSetup6.7.4/ISCC.exe"
     if not compiler.is_file():

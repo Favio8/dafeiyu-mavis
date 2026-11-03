@@ -30,7 +30,7 @@ for package in ("imageio_ffmpeg", "certifi", "keyring", "win32ctypes", "sherpa_o
 for distribution in ("PySide6", "shiboken6", "sherpa-onnx", "keyring", "comtypes", "pydantic", "aiohttp", "imageio-ffmpeg", "Pillow", "psutil", "pywin32"):
     datas += copy_metadata(distribution)
 a = Analysis([str(root/"packaging/mavis_entry.py")], pathex=[str(root)], binaries=binaries,
-             datas=datas, hiddenimports=hidden+["PySide6.QtSvg", "PySide6.QtMultimedia", "pythoncom", "pywintypes", "win32com.client", "win32cred"],
+             datas=datas, hiddenimports=hidden+["PySide6.QtSvg", "PySide6.QtMultimedia", "pythoncom", "pywintypes", "win32com.client", "win32cred", "win32file"],
              excludes=["pet.chat", "OpenGL", "PyQt5", "PyQt6", "PySide2", "torch", "transformers", "pandas", "IPython", "matplotlib", "windows_use", "litellm", "posthog"],
              noarchive=False)
 pyz = PYZ(a.pure)

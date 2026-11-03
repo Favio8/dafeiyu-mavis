@@ -83,7 +83,20 @@ def verify_bundle(folder: Path, logs: Path) -> dict:
     missing_modules = [m for m in expected if m not in modules]
     if missing_modules:
         raise RuntimeError("MISSING_FROZEN_MODULES: "+", ".join(missing_modules))
-    private = [p for p in folder.rglob("*") if p.is_file() and (p.suffix.lower() in {".db", ".wav"} or p.name in {"assistant-settings.json", "voice-preferences.json", ".env"})]
+    built_in_audio = {}
+    for name in ("click.wav", "agent/start.wav", "agent/done.wav", "agent/error.wav"):
+        source_name = "assets/sounds/"+name
+        original = subprocess.check_output(["git", "show", "34d810b1eadd98d00e7cb9b3b51428a45b5bf03e:"+source_name], cwd=ROOT)
+        built_in_audio["_internal/"+source_name] = hashlib.sha256(original).hexdigest()
+    private = []
+    for path in folder.rglob("*"):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(folder).as_posix()
+        if path.suffix.lower() == ".wav" and (relative not in built_in_audio or sha(path) != built_in_audio[relative]):
+            private.append(path)
+        elif path.suffix.lower() == ".db" or path.name in {"assistant-settings.json", "voice-preferences.json", ".env"}:
+            private.append(path)
     if private:
         raise RuntimeError("PRIVATE_DATA_IN_BUNDLE")
     from scripts.check_bundle_encoding import check_bundle
@@ -96,6 +109,7 @@ def verify_bundle(folder: Path, logs: Path) -> dict:
         raise RuntimeError("BUNDLE_ENCODING_FAILED")
     report = {"passed": True, "required_files": [str(p.relative_to(folder)) for p in required], "required_modules": expected,
               "input_lock_sha256": sha(ROOT / "requirements-mavis.lock.txt"), "speech_weights_bundled": False,
+              "built_in_synthesized_audio_matches_fixed_upstream": built_in_audio,
               "files": [{"name": str(p.relative_to(folder)).replace("\\", "/"), "size": p.stat().st_size, "sha256": sha(p)} for p in sorted(folder.rglob("*")) if p.is_file()]}
     (logs / "bundle-verification.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report
@@ -145,6 +159,11 @@ def build(args) -> None:
     execute([sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--distpath", str(candidate / "onedir"), "--workpath", str(stage / "pyinstaller"), "packaging/mavis.spec"], logs / "pyinstaller.txt", env=env)
     folder = candidate / "onedir/DaFeiYuMavis"
     (folder / "portable.json").write_text(json.dumps({"schema": 1, "data": "data", "version": VERSION}), encoding="utf-8")
+    finish_package(folder, candidate, logs, args, info, env)
+
+
+def finish_package(folder: Path, candidate: Path, logs: Path, args, info: dict, env=None) -> None:
+    """Reuse an unchanged onedir after a packaging-only fix; preserve the old source SHA."""
     verify_bundle(folder, logs)
     compiler = args.iscc or ROOT / ".scratch/m6/tools/InnoSetup6.7.4/ISCC.exe"
     if not compiler.is_file():
@@ -156,7 +175,9 @@ def build(args) -> None:
         raise RuntimeError("INNO_SETUP_VERSION_MISMATCH")
     execute([str(compiler), "/Qp", "/DMyAppDir="+str(folder), "/DMyOutputDir="+str(candidate), "packaging/mavis.iss"], logs / "inno.txt", env=env)
     if not args.no_zip:
-        portable(folder, candidate / f"DaFeiYu-Mavis-{VERSION}-win-x64-portable.zip", epoch)
+        portable(folder, candidate / f"DaFeiYu-Mavis-{VERSION}-win-x64-portable.zip", info["source_date_epoch"])
+    info["packaging_source_commit"] = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    info["spec_sha256"] = sha(ROOT / "packaging/mavis.spec")
     info["artifacts"] = [{"name": p.name, "bytes": p.stat().st_size, "sha256": sha(p)} for p in sorted(candidate.iterdir()) if p.is_file()]
     (candidate / "BUILD_MANIFEST.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
     checksums(candidate)
@@ -170,7 +191,7 @@ def checksums(folder: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=("build", "verify", "checksums"))
+    parser.add_argument("command", choices=("build", "package", "verify", "checksums"))
     parser.add_argument("--output", type=Path)
     parser.add_argument("--app-dir", type=Path)
     parser.add_argument("--iscc", type=Path)
@@ -178,6 +199,15 @@ def main() -> int:
     args = parser.parse_args()
     if args.command == "build":
         build(args)
+    elif args.command == "package":
+        if args.app_dir is None or args.output is None:
+            parser.error("package requires --app-dir and its candidate --output")
+        if (args.output / "BUILD_MANIFEST.json").exists():
+            parser.error("refusing to replace a completed delivery candidate")
+        logs = args.output / "evidence" / ("package-"+datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"))
+        logs.mkdir(parents=True)
+        info = json.loads((args.app_dir / "_internal/build-info.json").read_text(encoding="utf-8"))
+        finish_package(args.app_dir.resolve(), args.output.resolve(), logs, args, info)
     elif args.command == "verify":
         if args.app_dir is None or args.output is None:
             parser.error("verify requires --app-dir and --output evidence folder")
